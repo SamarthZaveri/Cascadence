@@ -1,4 +1,4 @@
-# SupplyGuard
+# Cascadence
 
 A platform that models a company's supply network as a graph, fuses real multimodal
 signals (SEC filings, news, satellite imagery, ship-tracking, nighttime-lights data),
