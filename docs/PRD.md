@@ -1,4 +1,4 @@
-# PRD — SupplyGuard: Supply Chain Risk Propagation Platform
+# PRD — Cascadence: Supply Chain Risk Propagation Platform
 
 ## 1. What this is
 A platform that models a company's supply network as a graph, fuses real multimodal signals
@@ -38,7 +38,7 @@ template for the required format).
 ## 3. Repository layout
 
 ```
-supplyguard/
+cascadence/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py, config.py
@@ -113,8 +113,9 @@ PyTorch Geometric, spaCy (`en_core_web_lg`) + sentence-transformers, rasterio + 
 celery_worker, celery_beat, frontend, Prometheus, Grafana). GitHub Actions CI. Optional
 Terraform for deployment.
 
-**Exact dependency pins and `.env` variable list:** see `DATA_CONTRACT.md` §"Environment &
-Config" — treated as a contract because downstream code depends on these exact names.
+**Dependency pins:** `backend/requirements.txt` and `frontend/package-lock.json`.
+**Configuration names and Phase 1 decisions:** `DATA_CONTRACT.md` §§1 and 8.
+The basic CPU GCN is introduced in Phase 1; Phase 4 expands and compares architectures.
 
 ## 6. External data sources ("where data comes from")
 
@@ -328,3 +329,18 @@ Phase 4: 5-7 days (slowest — training iteration can't be shortcut) · Phase 5:
 (backtest curation is manual research) · Phase 6: 4-5 days · Phase 7: 3-4 days ·
 Phase 8: 3-4 days. **Total ≈ 30-40 working days.** After Phase 5 you already have a
 strong, defensible portfolio piece even if later phases slip.
+
+
+## 12. Phase 1 boundary clarification (2026-09-18)
+
+The first slice is implemented with a synchronous local seed CLI. Scheduled ingestion,
+workspace orchestration, and model refresh tasks remain for the appropriate later phases.
+`graph_builder.build_pyg_graph(company_ids, scenario_seed)` currently takes explicit
+company IDs because users/workspaces and ownership are not implemented. Phase 1 uses
+deterministic synthetic shock severity in place of rolling real signal aggregates; it
+never inserts fictitious news/satellite/SEC observations into `signals`.
+
+Read APIs are development-only until authentication is wired. Exact company-list and
+risk-history responses, absent-score behavior, graph depth bounds, model artifact paths,
+and rerun semantics are recorded in `DATA_CONTRACT.md` §8. Phase 4 must add real feature
+aggregation and richer model comparisons; Phase 5 must establish historical validity.

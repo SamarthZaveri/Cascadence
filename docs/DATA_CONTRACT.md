@@ -1,4 +1,4 @@
-# DATA CONTRACT — SupplyGuard
+# DATA CONTRACT — Cascadence
 
 This file is the single source of truth for every stored field and every wire format
 (REST, WebSocket, environment config). If code disagrees with this file, the code is wrong.
@@ -249,3 +249,80 @@ class BacktestDataset:
     actual_impact: dict[str, float]      # company -> severity, curated from public reporting
     graph_snapshot_source: str           # how to reconstruct the pre-event graph
 ```
+
+## 8. Phase 1 implementation decisions (2026-09-18)
+
+Phase 1 implements `companies`, `model_versions`, and `risk_scores` only. The other
+entities above remain specifications for later phases. PostgreSQL UUIDs equal Neo4j
+Company.uuid; `companies.neo4j_id` stores that UUID string, never an internal Neo4j ID.
+`model_versions.architecture` is a PostgreSQL enum with all four specified values.
+Scores have a database CHECK constraint in [0,1]; at most one model is active.
+
+### Local demo access
+The Phase 1 read endpoints are unauthenticated **only when ENVIRONMENT=development**.
+They return 403 in other environments until session/API-key auth and workspace ownership
+are implemented. This is an explicit temporary exception to §4, not production auth.
+A supplied `workspace_id` returns 422; Phase 1 has no workspace scoping. No write REST
+endpoints or graph-refresh jobs are exposed yet. Use the seed CLI for local data writes.
+
+### Exact Phase 1 responses
+`GET /companies?industry=&search=&page=1&page_size=20` returns:
+```json
+{"items":[{"id":"uuid","name":"...","ticker":null,"industry":"Electronics",
+"hq_country":"India","is_synthetic":true,"risk_score":0.42}],
+"total":60,"page":1,"page_size":20}
+```
+`search` is a case-insensitive literal substring of name or ticker. `industry` is an
+exact match. `page>=1`, `1<=page_size<=100`. Order is name, then UUID. Empty datasets
+return `items:[]`, `total:0`. Unscored companies have `risk_score:null`, never zero.
+
+`GET /risk/{company_id}` returns:
+```json
+{"company_id":"uuid","latest":{"id":"uuid","score":0.42,"model_version_id":"uuid",
+"computed_at":"2026-09-18T12:00:00Z","graph_snapshot_id":"sha256"},
+"history":[{"id":"uuid","score":0.42,"model_version_id":"uuid",
+"computed_at":"2026-09-18T12:00:00Z","graph_snapshot_id":"sha256"}]}
+```
+History is the latest 100 observations, newest first (UUID breaks timestamp ties).
+Existing companies with no scores return `latest:null, history:[]`; unknown companies
+return 404. `GET /risk/{company_id}/history?since=<ISO8601 with timezone>` returns
+`{company_id, history}` using the same order/limit, with inclusive `since`.
+
+`GET /graph/{company_id}` preserves §4's exact `{nodes,links}` shape. Defaults:
+`depth=2`, `direction=upstream`; depth range 1–5. SUPPLIES points supplier → customer.
+Upstream follows incoming edges; downstream follows outgoing edges; both is undirected
+reachability. Links retain their original supplier → customer direction and include all
+edges among the selected nodes. Node tiers are absolute generator tiers, not distance
+from the current selection. A node's `risk_score` can be null. The focal node is included
+when isolated. Unknown company: 404; missing graph projection: 409; >1000 reachable
+nodes: 422; unavailable database: 503. Invalid UUID/query inputs use the §4 error shape.
+
+### Synthetic learning contract
+Generator: seeded, preferentially attached multi-tier DAG; all companies synthetic.
+`num_tiers` includes tier 0; UUID identity includes generator version, seed, size, tiers,
+and requested degree. Equal parameters reproduce the same graph; changed parameters
+produce a separate network. Re-seeding upserts that network and appends a scoring run.
+No other networks or real company nodes are removed.
+
+Feature schema `phase1-v1`: fixed industry one-hot (including Other), is_synthetic,
+synthetic local shock severity. Edge attributes: criticality plus relationship-type
+one-hot. Basic GCN consumes criticality as edge_weight; relation categories are retained
+for later models. Synthetic severities are deterministic scenario inputs derived from
+UUID + scenario seed, stored in the model run's snapshot JSON, **not real Signal rows**.
+Targets use two rounds of weighted supplier-shock propagation. Targets and previous risk
+scores are never input features. Separate generated graph seeds are used for training,
+validation, test, and the displayed demo. These metrics measure a toy synthetic task,
+not historical disruption accuracy or calibrated probabilities. Phase 4 expands models;
+Phase 5 adds real backtesting.
+
+Artifacts: `ml/training/artifacts/<model_version UUID>/model.pt`, `snapshot.json`,
+`metrics.json`; backend `MODEL_ARTIFACT_DIR` (default `../ml/training/artifacts`) controls
+the root. Compose sets it to `/artifacts` and mounts `../ml/training/artifacts` there.
+CPU Torch 2.6.0, torch-geometric 2.6.1, networkx 3.4.2 support the Phase 1 runtime.
+GPU/CUDA is optional and not required or auto-detected by the seed command.
+
+Postgres and Neo4j do not share a transaction. The seed command holds a PostgreSQL
+advisory lock, upserts Postgres companies, synchronizes Neo4j, then reads back the stored
+graph before inference. Model activation + score insertion commit together only after
+artifacts and graph projection succeed. On graph failure, company rows may remain
+unscored; rerun the identical command to repair. No completed run is claimed on failure.

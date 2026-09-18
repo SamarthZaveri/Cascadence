@@ -1,281 +1,82 @@
-# Cascadence — Implementation Status
+# Cascadence — Implementation handoff
 
-> **Purpose:** Compact handoff context for a new coding session.
-> For product requirements and schemas, read `PRD.md` and `DATA_CONTRACT.md` first. This file records the current implementation state, important engineering decisions, and the next development target.
+Updated 2026-09-18. Keep this compact; full explanation belongs in `PROJECT_GUIDE.md`.
+Baseline for this delivery: `0997f82b15371e44f2891ca24a53b01d204722f9`.
 
-## Current State
+## Current state
 
-**Phase 0 — Foundation & Infrastructure: COMPLETE**
+**Phase 0: complete. Phase 1: implemented and tested; local Compose/browser acceptance
+still needs to be run on the development machine. Next development target: Phase 2.**
 
-Cascadence now has a working local development foundation with CI and a fully operational Docker Compose stack.
+Phase 0 already established FastAPI, React, PostgreSQL 16, Neo4j 5 + GDS, Redis,
+Celery worker/beat, Alembic, Prometheus/Grafana, Docker images, and GitHub Actions.
+Its Compose health checks were previously verified. Preserve Python 3.11 and the distinct
+backend HTTP / Celery ping / beat-disabled healthchecks.
 
-The system currently includes:
+## Phase 1 implementation
 
-* FastAPI backend
-* React frontend
-* PostgreSQL 16
-* Neo4j 5 Community + Graph Data Science plugin
-* Redis
-* Celery worker and Celery beat
-* Prometheus
-* Grafana
-* Alembic migrations
-* GitHub Actions CI
-* Dockerized backend/frontend
+- `services/ingestion/synthetic_generator.py`: seeded, preferentially attached multi-tier
+  DAG. Stable UUIDs, supplier → customer edges, bounded criticality, synthetic provenance.
+- `stores.py`: PostgreSQL upsert + Neo4j MERGE, scoped edge replacement, graph readback.
+  Identical parameters reuse the same network; changed parameters create another network.
+- Migration `20260918_01` follows `7fd68b6689ff`; adds `companies`, `model_versions`,
+  `risk_scores`, foreign keys, score bounds, latest-score index, and one-active-model index.
+  Other contract tables are not implemented yet.
+- `services/gnn/`: stable PyG features, weighted two-layer GCN with local-feature head,
+  graph-disjoint train/validation/test sets, validation-selected checkpoint, safe reload,
+  persisted inference scores and model metadata. CPU Torch/PyG start here, intentionally
+  earlier than the old requirements comment; Phase 4 still owns model maturity.
+- `services/ingestion/seed.py` orchestrates the entire slice. Default: 60 companies,
+  four tiers, seed 42, 120 epochs. Re-seeding appends risk history. An advisory lock
+  prevents concurrent seed runs; artifacts precede atomic model/score persistence.
+- APIs: `/api/v1/companies`, `/graph/{company_id}`, `/risk/{company_id}`,
+  `/risk/{company_id}/history`. Typed responses; contract-shaped validation/errors;
+  pagination/filtering, directional graph traversal, null unscored values.
+- React `/dashboard`: company directory, filters, pagination, page-level risk sorting,
+  NetworkGraph, traversal controls, risk history, loading/error/empty states. ForceGraph
+  receives cloned data so its mutation cannot corrupt the query cache.
+- Compose mounts root data scripts and persistent ML artifacts. Vite local proxy points
+  to localhost; production frontend still uses the existing nginx proxy to backend.
 
-Development is standardized on **Python 3.11** across the local virtual environment, backend Docker image, and GitHub Actions.
+## Decisions and limits to preserve
 
----
+`DATA_CONTRACT.md` §8 records deliberate Phase 1 clarifications. Graph JSON stays
+`{nodes,links}`. Company UUIDs match across stores. Only development-mode read access is
+available: other environments return 403; workspace_id is rejected rather than ignored.
+JWT/API-key auth and workspace isolation remain unimplemented.
 
-## Phase 0 Verification
+Synthetic shocks are scenario inputs saved in snapshot JSON, not real Signal rows.
+Features contain no targets or previous risk scores. Relation type is retained in PyG
+edge attributes, while this basic GCN uses criticality weights. No LLM computes risk.
+Synthetic MAE is toy-task evidence only; scores are not calibrated probabilities.
 
-The complete Compose stack has been built and started successfully.
+Cross-store writes are not atomic. A Neo4j failure can leave unscored SQL companies;
+rerunning the same seed repairs the projection. Failed artifact/SQL steps can leave an
+unreferenced artifact directory. Do not report a successful run until scores commit.
 
-Verified runtime state:
+## Verification
 
-```text
-backend          healthy
-celery_worker    healthy
-celery_beat      running
-frontend         running
-postgres         healthy
-neo4j            healthy
-redis            healthy
-prometheus       running
-grafana          running
+Python 3.11.16: Ruff and mypy passed; 28 backend tests passed, 87% app statement coverage.
+Migration upgrade/downgrade/re-upgrade and Alembic drift check passed. Integration checks
+used actual Neo4j 5.24 and PGlite (PostgreSQL WASM over its wire protocol); this is not a
+PostgreSQL 16 container verification. Six frontend tests, clean npm install, lint,
+TypeScript and production build passed. Default seed scored 60 nodes / 98 edges.
+Docker is unavailable here and cloud browser access to localhost was blocked. CI was
+updated to run integrations against dedicated PostgreSQL 16/Neo4j services; its remote
+run has not been observed. See `PHASE1_VALIDATION.md` for full evidence.
+
+## Run / resume
+
+From the repo root, retaining the existing `.env`:
+```powershell
+docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+docker compose --env-file .env -f infra/docker-compose.yml exec backend alembic upgrade head
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python data/seed/seed_demo.py
 ```
-
-Functional checks also passed:
-
-```text
-FastAPI /health        → ok / development
-PostgreSQL             → accepting connections
-Redis                  → PONG
-Celery worker          → pong / node online
-Alembic upgrade head   → successful
-```
-
-The current Alembic revision is the Phase 0 baseline and intentionally contains no application tables yet.
-
-### Local service ports
-
-```text
-Frontend       3000
-Backend        8000
-PostgreSQL     5432
-Neo4j Browser  7474
-Neo4j Bolt     7687
-Redis          6379
-Prometheus     9090
-Grafana        3001
-```
-
----
-
-## Important Infrastructure Decisions
-
-### Python
-
-Use **Python 3.11** for Cascadence.
-
-This is now consistent between:
-
-```text
-local venv
-Docker backend / Celery
-GitHub Actions
-```
-
-This should be preserved when PyTorch and PyTorch Geometric are introduced.
-
-### Docker networking
-
-Services communicate through Compose service names rather than localhost.
-
-Examples:
-
-```text
-PostgreSQL → postgres:5432
-Neo4j      → neo4j:7687
-Redis      → redis:6379
-```
-
-The host machine can access exposed services through `localhost:<mapped-port>`.
-
-### Celery healthchecks
-
-The backend Dockerfile contains an HTTP `/health` healthcheck.
-
-Because the Celery services use the same backend image, they originally inherited this healthcheck and were incorrectly marked unhealthy even though Celery was operational.
-
-This was corrected in Compose:
-
-* backend → HTTP `/health`
-* celery worker → `celery inspect ping`
-* celery beat → inherited HTTP healthcheck disabled
-
-Do not reintroduce the backend HTTP healthcheck for Celery.
-
-### Environment configuration
-
-`.env.example` defines the contractual environment variable names.
-
-Local development uses a root `.env`, which must remain ignored by Git.
-
-Phase 2/3/LLM/alerting credentials can remain empty until their corresponding phases.
-
----
-
-## CI Status
-
-GitHub Actions CI is configured for backend, frontend, and Docker validation.
-
-Backend CI includes:
-
-* Python 3.11
-* PostgreSQL
-* Neo4j
-* Redis
-* Ruff
-* mypy
-* Alembic migration
-* pytest + coverage
-
-Frontend CI includes:
-
-* Node 22
-* npm install
-* lint
-* TypeScript compilation
-* tests
-* production build
-
-Docker images for the backend and frontend are also built in CI.
-
-Earlier reproducibility issues involving `pytest-cov` and the backend Python import path have already been fixed.
-
-Keep CI green as new functionality is introduced.
-
----
-
-# Next: Phase 1 — First End-to-End Intelligence Slice
-
-Phase 1 is the next implementation target.
-
-The objective is not to build isolated database or ML components. Build the first working vertical slice:
-
-```text
-Synthetic supply-chain network
-            ↓
-     PostgreSQL + Neo4j
-            ↓
-    PyTorch Geometric
-            ↓
-       Basic GCN
-            ↓
-      Risk inference
-            ↓
-   Persist risk scores
-            ↓
-       FastAPI APIs
-            ↓
-     React NetworkGraph
-```
-
-### Phase 1 milestone
-
-A synthetic multi-tier supply network should be:
-
-1. generated,
-2. persisted according to the existing data contract,
-3. represented as a graph,
-4. converted into a PyTorch Geometric graph,
-5. scored by a basic GNN,
-6. exposed through the backend,
-7. and visibly rendered in the frontend.
-
-The important APIs for this slice are:
-
-```text
-GET /graph/{company_id}
-GET /risk/{company_id}
-```
-
-Follow the exact response contracts defined in `DATA_CONTRACT.md`.
-
----
-
-## Phase 1 Implementation Guidance
-
-Before writing Phase 1 code:
-
-1. Read `PRD.md`.
-2. Read `DATA_CONTRACT.md`.
-3. Inspect the existing repository and migrations.
-4. Do not invent schemas already defined by the contract.
-
-Then implement incrementally:
-
-```text
-synthetic data
-    ↓
-database schema + migration
-    ↓
-PostgreSQL persistence
-    ↓
-Neo4j graph persistence
-    ↓
-PyG conversion
-    ↓
-basic GCN baseline
-    ↓
-risk persistence
-    ↓
-graph/risk APIs
-    ↓
-frontend visualization
-```
-
-Run and verify each boundary before proceeding to the next.
-
-### PyTorch / PyG
-
-PyTorch and PyTorch Geometric have **not yet been added** to the project.
-
-Before installing them, check the development machine's NVIDIA/CUDA environment and select versions compatible with Python 3.11.
-
-The project documentation previously placed these dependencies in a later GNN phase, but the current Phase 1 vertical slice requires a basic GCN. Resolve that dependency/documentation mismatch intentionally when starting Phase 1.
-
----
-
-## Architectural Constraints to Preserve
-
-`DATA_CONTRACT.md` is authoritative for implementation-level contracts.
-
-In particular, preserve its definitions for:
-
-* PostgreSQL entities
-* Neo4j `Company` and `Signal` nodes
-* `SUPPLIES` relationships
-* API request/response shapes
-* WebSocket messages
-* environment variable names
-* frontend `{nodes, links}` graph representation
-
-If implementation requires a contract change, update the contract deliberately rather than silently creating a second schema.
-
-The GNN/model and deterministic cascade engine calculate risk.
-
-**LLMs must not calculate risk scores.**
-
-Later LLM functionality should consume computed evidence and produce explanations/briefings.
-
----
-
-## Handoff
-
-Phase 0 infrastructure is complete and verified.
-
-Do not spend another development cycle rebuilding or redesigning the foundation unless Phase 1 exposes a concrete problem.
-
-**Start with Phase 1 synthetic network persistence and the first database migration, then work vertically toward a GNN-scored graph visible in the React dashboard.**
+Open `/dashboard`, select the printed focal UUID via `?company=<uuid>`, depth 3, and
+confirm the graph plus history. Do not recreate Phase 0 or remove its baseline migration.
+
+**Next:** Phase 2 SEC EDGAR + GDELT ingestion, NLP normalization/extraction, Signal
+schema/migration, provenance-aware merging of real and synthetic nodes. Decide workspace
+authorization before exposing tenant-scoped ingestion or public write APIs. Keep the
+working Phase 1 slice intact while introducing real features.

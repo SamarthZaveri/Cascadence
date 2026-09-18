@@ -1,6 +1,11 @@
+import logging
+
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from neo4j.exceptions import Neo4jError, ServiceUnavailable, SessionExpired
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.router import api_router
@@ -15,7 +20,7 @@ configure_logging()
 app = FastAPI(
     title="Cascadence API",
     description="Supply chain risk propagation platform.",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(CorrelationIdMiddleware)
@@ -55,3 +60,37 @@ async def health() -> dict:
     added later (e.g. /health/ready) once those services are wired into real flows.
     """
     return {"status": "ok", "environment": settings.ENVIRONMENT}
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    errors = [
+        {"location": list(error["loc"]), "message": error["msg"], "type": error["type"]}
+        for error in exc.errors()
+    ]
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {"code": "422", "message": "Invalid request", "details": {"errors": errors}}
+        },
+    )
+
+
+async def database_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logging.getLogger(__name__).error("Database request failed", exc_info=exc)
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": {
+                "code": "503",
+                "message": "Data store unavailable; check services and migrations",
+                "details": {},
+            }
+        },
+    )
+
+
+for database_error in (SQLAlchemyError, Neo4jError, ServiceUnavailable, SessionExpired):
+    app.add_exception_handler(database_error, database_exception_handler)

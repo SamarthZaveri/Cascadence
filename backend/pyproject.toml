@@ -1,11 +1,11 @@
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py311"
 extend-exclude = ["migrations/versions", "migrations/env.py", "migrations/script.py.mako"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 exclude = ["migrations"]

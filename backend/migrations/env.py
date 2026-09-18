@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.config import get_settings  # noqa: E402
 from app.db.postgres import Base  # noqa: E402
+import app.models  # noqa: F401, E402
 
 # Import every ORM module here as models/ fills in (Phase 1+) so autogenerate can see
 # them, e.g.: from app.models import company, signal, risk_score  # noqa: F401

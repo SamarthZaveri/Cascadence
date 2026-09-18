@@ -1,94 +1,89 @@
 # Cascadence
 
-A platform that models a company's supply network as a graph, fuses real multimodal
-signals (SEC filings, news, satellite imagery, ship-tracking, nighttime-lights data),
-predicts disruption cascades with a temporal GNN, explains its reasoning, recommends
-supplier diversification, runs live scenario simulations, and is validated by backtesting
-against real historical disruptions (COVID-19, the 2021 Suez Canal blockage, the
-2020-2022 semiconductor shortage).
+Supply-chain risk intelligence built around company relationships. The complete product
+will combine real signals, graph learning, explanations, backtesting, and simulations.
+**Phase 0 and Phase 1 are implemented.** The current runnable slice generates fictional
+suppliers, persists their network, trains a basic GCN, stores risk scores, and exposes an
+interactive dashboard. Real ingestion and historical validation are later phases.
 
-## Docs
-- [`docs/PRD.md`](./docs/PRD.md) — what to build, architecture, tech stack, module specs, phased plan
-- [`docs/DATA_CONTRACT.md`](./docs/DATA_CONTRACT.md) — authoritative schemas, API/WS shapes, env vars
-- [`docs/UPDATES.md`](./docs/UPDATES.md) — living build log; **check this first** when resuming work
+## Read these first
 
-## Why this project exists (portfolio context)
-Real supplier-relationship data is commercially locked (FactSet, S&P Capital IQ). This
-project uses a hybrid strategy instead: real SEC filings, real free satellite imagery
-(Sentinel-2), real free nighttime-lights data (NASA VIIRS), a free sample AIS
-ship-tracking dataset, and a synthetic network generator to fill gaps at demo scale. This
-is stated explicitly rather than hidden — see `docs/PRD.md` §2 and §6 for the full
-data-source table and reasoning.
+- [Implementation handoff](docs/UPDATES.md): compact current state and next work.
+- [Product requirements](docs/PRD.md): product scope and mandatory phase order.
+- [Data contract](docs/DATA_CONTRACT.md): stored fields, APIs, and Phase 1 decisions.
+- [Comprehensive project guide](docs/PROJECT_GUIDE.md): architecture, learning pipeline,
+  module explanations, operating guide, current limits, and roadmap.
+- [Verification report](docs/PHASE1_VALIDATION.md): checks actually executed.
+- [Phase 1 installation and file manifest](docs/PHASE1_INSTALL.md): exact file actions.
 
-## Quick start
+## Start or update the local demo
 
-```bash
-git clone <repo>
-cd cascadence
-cp .env.example .env   # fill in API keys — see docs/DATA_CONTRACT.md §1 for the full list
-docker compose -f infra/docker-compose.yml up -d
-docker compose exec backend alembic upgrade head
-docker compose exec backend python data/seed/seed_demo.py
+Run from the repository root in PowerShell or a terminal. Preserve your existing `.env`.
+For a fresh clone only, copy `.env.example` to `.env` and retain its local demo defaults.
+No external API keys or NVIDIA GPU are needed for Phase 1.
+
+```powershell
+docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+docker compose --env-file .env -f infra/docker-compose.yml exec backend alembic upgrade head
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python data/seed/seed_demo.py
 ```
 
-Then visit:
-- Frontend: `http://localhost:3000`
-- API docs (Swagger): `http://localhost:8000/docs`
-- Grafana: `http://localhost:3001`
+Wait for each command to finish successfully. The first build downloads CPU PyTorch.
+The seed script defaults to 60 companies, four tiers (0–3), seed 42, and 120 epochs.
+It writes both stores, reads Neo4j back, trains on separate synthetic networks, reloads
+the saved checkpoint, and commits one score per demo company. Its JSON output includes
+the focal company UUID, model version, artifact path, and evaluation metrics.
 
-`seed_demo.py` runs the synthetic generator, ingests a small real dataset, loads curated
-backtest datasets, and runs one full inference/explanation/recommendation cycle — a fresh
-clone is fully demoable within minutes of this script finishing.
+Open [the dashboard](http://localhost:3000/dashboard). To see the entire default network,
+use the seed output's `focal_company_id` in
+`http://localhost:3000/dashboard?company=<focal_company_id>` and depth 3.
+Other local services: [API docs](http://localhost:8000/docs),
+[Neo4j Browser](http://localhost:7474), [Grafana](http://localhost:3001),
+[Prometheus](http://localhost:9090).
 
-> **Phase 0 status:** scaffolding only — `/health` boots, frontend boots, Alembic baseline
-> migration exists, CI is wired. `seed_demo.py` is currently a stub. See
-> [`docs/UPDATES.md`](./docs/UPDATES.md) for exactly what's implemented so far.
+Re-running the identical command keeps the company/edge counts stable and appends a
+new model/scoring run. Changing generator parameters creates a separate synthetic
+network. Artifacts persist in `ml/training/artifacts/<model UUID>/` on the host.
 
-## Required external accounts (all free tier)
-See `docs/PRD.md` §6 for the full table. Summary: SEC EDGAR (no key, just a compliant
-User-Agent), GDELT (no key), Copernicus Data Space Ecosystem (free account →
-client ID/secret), NASA Earthdata (free/no auth for VIIRS composites), Anthropic API key
-(small paid usage for briefings).
+## What is implemented
 
-## Testing
+- Seeded NetworkX multi-tier supply DAG; stable UUID identities and bounded edge weights.
+- Alembic migration for companies, model versions, and risk history in PostgreSQL.
+- Neo4j Company/SUPPLIES persistence and directional traversal.
+- Weighted PyTorch Geometric GCN, graph-disjoint train/validation/test sets, checkpoint
+  selection/reload, and inference from the persisted graph.
+- `GET /api/v1/companies`, `/graph/{id}`, `/risk/{id}`, `/risk/{id}/history`.
+- React dashboard with filtering, pagination, page-level risk sorting, selectable network,
+  upstream/downstream controls, risk history, and accessible company-list fallback.
+- Backend and frontend tests, CI integration checks, existing observability and Compose.
 
-```bash
-docker compose exec backend pytest --cov=app
-cd frontend && npm test
+## Limits that matter
+
+All current data and targets are synthetic. Scores are bounded model outputs, **not
+calibrated real-world probabilities**. The model learns a deliberately simple synthetic
+shock-propagation task; good toy metrics are not proof of real disruption forecasting.
+The hybrid real/synthetic strategy remains the plan because commercial supplier data is
+usually inaccessible. SEC/GDELT ingestion begins in Phase 2.
+
+Phase 1 read endpoints are open only in `ENVIRONMENT=development`; other environments
+return 403 until authentication/workspace ownership are implemented. This is a local
+demo, not a production deployment. LLMs never calculate risk scores.
+
+## Tests and CI
+
+```powershell
+docker compose --env-file .env -f infra/docker-compose.yml exec backend pytest --cov=app
+cd frontend
+npm ci
+npm test
+npm run lint
+npm run build
 ```
 
-- Unit tests: pure logic (cascade math, concentration scoring, alert rules) — no external
-  services, real edge-case coverage (empty graph, single node, circular deps, zero shocks).
-- Integration tests: Postgres/Neo4j/Redis via `testcontainers-python` or a dedicated test DB
-  reset between runs — not mocked, catches real schema/query bugs.
-- API tests: `httpx.AsyncClient` against the app directly, covering every endpoint in
-  `docs/DATA_CONTRACT.md` §4 (happy path, auth failure, validation errors, not-found).
-- GNN tests: shape correctness and no-crash on edge cases (single node, disconnected
-  components) — not accuracy assertions (that's what backtesting/eval are for).
-- Frontend: React Testing Library for `NetworkGraph`, `ExplainabilityViewer`, and the
-  simulator's WebSocket message handling (mock the WS connection).
+Ordinary backend runs skip integration tests unless explicitly enabled with a dedicated
+`*_test` database. CI enables these tests against PostgreSQL 16 and Neo4j service
+containers, runs Ruff/mypy and frontend checks, then verifies both Docker builds.
+See the project guide for isolated integration-test setup and what CI means.
 
-## CI
-`.github/workflows/ci.yml` — backend lint (`ruff`) + typecheck (`mypy`) + pytest w/
-coverage against service containers; frontend lint (`eslint`) + typecheck (`tsc`) +
-component tests; Docker build verification for both images. Runs on every PR, blocks merge
-on failure.
-
-## Deployment
-- Minimum viable: Docker Compose on a single small VM, reverse proxy (Caddy/nginx) with
-  Let's Encrypt for HTTPS. A live URL reads far better in a portfolio than "clone and run
-  locally."
-- Stretch: basic Terraform under `infra/terraform/` — doesn't need to be elaborate, mainly
-  useful as IaC to point to in an interview.
-- Secrets: injected via the hosting platform's secret manager, never baked into images.
-
-## What to show in an interview / on a resume
-- The `/backtests` page — predicted vs. actual for three real historical disruptions
-- The `/simulate` page — live animated cascade propagation
-- The architecture-comparison + ablation study results (from `gnn/eval.py`)
-- The explicit "LLM narrates, never invents" design constraint in the briefing generator
-- The hybrid real/synthetic data strategy and why it was necessary
-
-Record a 2-3 minute demo video covering: dashboard → company detail → explainability →
-live simulation → backtest results. This is what actually gets shared/linked, not the
-repo alone.
+Python is 3.11 throughout project configuration. Default ML dependencies are
+`torch==2.6.0+cpu`, `torch-geometric==2.6.1`, and `networkx==3.4.2`.

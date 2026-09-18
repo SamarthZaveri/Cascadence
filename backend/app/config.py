@@ -5,6 +5,7 @@ Every field name here must match DATA_CONTRACT.md §1 "Environment & Config Cont
 exactly — that file is authoritative and binding. If you need a new env var, add it
 there first, then here.
 """
+
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -49,6 +50,8 @@ class Settings(BaseSettings):
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
     SLACK_WEBHOOK_URL: str | None = None
+
+    MODEL_ARTIFACT_DIR: str = "../ml/training/artifacts"
 
     # --- Observability ---
     PROMETHEUS_ENABLED: bool = True
