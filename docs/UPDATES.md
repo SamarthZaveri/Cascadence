@@ -1,97 +1,281 @@
-# UPDATES — Living Build Log
+# Cascadence — Implementation Status
 
-This file must be updated by whoever (whatever) is implementing this project at the end of every work session, before ending the session. Its purpose is to let a new session (a new chat, a new agent invocation, a different person) pick up exactly where the last one left off without re-reading the whole codebase or re-deriving decisions already made.
+> **Purpose:** Compact handoff context for a new coding session.
+> For product requirements and schemas, read `PRD.md` and `DATA_CONTRACT.md` first. This file records the current implementation state, important engineering decisions, and the next development target.
 
-## How to update this file
+## Current State
 
-1. Add a new entry at the top of the "Session Log" section (reverse chronological).
-2. Fill in every field — don't skip "Blockers/Open Questions" even if empty, write "none."
-3. If a decision was made that deviates from `PRD.md` or `DATA_CONTRACT.md`, update those files too and note the change here with a one-line reason.
-4. Update the "Current State" summary at the top so it always reflects the latest reality — this is the field a new session reads first.
+**Phase 0 — Foundation & Infrastructure: COMPLETE**
 
-## Current State (always keep this current — overwrite, don't append)
+Cascadence now has a working local development foundation with CI and a fully operational Docker Compose stack.
 
-* **Current phase:** Phase 0 — complete
-* **Last completed milestone:** repo scaffolded, `docker-compose.yml` defines all 9 services, backend `/health` returns 200 (verified locally), first Alembic migration created, frontend boots and builds (verified locally), CI workflow written
-* **What's working right now:**
-  - Backend: FastAPI app boots with zero live services (Postgres/Neo4j/Redis are lazily connected); `GET /health` → `200 {"status":"ok"}`; `/docs` renders; `ruff check .` and `mypy app` both clean; `pytest` passes (1 smoke test)
-  - Alembic: initialized, wired to `app.config`/`Base.metadata`, baseline revision `7fd68b6689ff` created (empty — no models exist yet)
-  - Frontend: Vite + React + TS scaffold reshaped into PRD §3 layout, all §5 libraries installed (React Router, TanStack Query, Zustand, Tailwind v4, react-force-graph-2d, Recharts, D3, react-hook-form+zod); `npm run build` and `npm run lint` (eslint) both clean; dev server verified serving on :5173
-  - Infra: `infra/docker-compose.yml` defines all 9 services from DATA_CONTRACT.md §1 (postgres, neo4j w/ GDS plugin, redis, backend, celery_worker, celery_beat, frontend, prometheus, grafana); `infra/prometheus.yml` scrapes `backend:8000/metrics`; Grafana datasource+dashboard-provider provisioning stubs in place
-  - CI: `.github/workflows/ci.yml` — backend job (ruff, mypy, alembic upgrade, pytest w/ service containers), frontend job (eslint, tsc, build), docker-build verification job
-* **What's broken/incomplete:**
-  - `docker compose up` itself has **not** been run or verified — no Docker daemon available in the implementing environment this session. Compose YAML was validated for structural correctness (parses, all 9 services present) but not for actual container behavior (image pulls, healthchecks, inter-service networking). **First thing next session should do: run `docker compose -f infra/docker-compose.yml up -d` for real and fix whatever breaks.**
-  - No SQLAlchemy models exist yet (`app/models/` is empty) — expected, that's Phase 1
-  - `seed_demo.py` is a stub print statement only
-  - `api/v1/*.py` route files (auth, companies, graph, risk, etc.) don't exist yet — only `router.py` (empty, just mounts) — expected, Phase 1+
-  - No Dockerfile has been build-tested (same Docker-availability constraint as above)
-* **Any deviations from PRD/DATA_CONTRACT:** none. Frontend template used `oxlint` by default (current `create-vite` default); swapped for `eslint` to match what `README.md`'s CI section commits to — this is conforming to the docs, not deviating from them.
+The system currently includes:
+
+* FastAPI backend
+* React frontend
+* PostgreSQL 16
+* Neo4j 5 Community + Graph Data Science plugin
+* Redis
+* Celery worker and Celery beat
+* Prometheus
+* Grafana
+* Alembic migrations
+* GitHub Actions CI
+* Dockerized backend/frontend
+
+Development is standardized on **Python 3.11** across the local virtual environment, backend Docker image, and GitHub Actions.
 
 ---
 
-## Session Log
+## Phase 0 Verification
 
-### Template for new entries (copy this block)
+The complete Compose stack has been built and started successfully.
 
+Verified runtime state:
+
+```text
+backend          healthy
+celery_worker    healthy
+celery_beat      running
+frontend         running
+postgres         healthy
+neo4j            healthy
+redis            healthy
+prometheus       running
+grafana          running
 ```
-### Session — YYYY-MM-DD
 
-**Phase worked on:**
-**Goal for this session:**
-**Completed:**
--
-**Not completed / deferred:**
--
-**Decisions made (and why):**
--
-**Deviations from PRD.md / DATA_CONTRACT.md (if any, and why):**
--
-**Blockers / open questions for next session:**
--
-**Files touched:**
--
+Functional checks also passed:
+
+```text
+FastAPI /health        → ok / development
+PostgreSQL             → accepting connections
+Redis                  → PONG
+Celery worker          → pong / node online
+Alembic upgrade head   → successful
+```
+
+The current Alembic revision is the Phase 0 baseline and intentionally contains no application tables yet.
+
+### Local service ports
+
+```text
+Frontend       3000
+Backend        8000
+PostgreSQL     5432
+Neo4j Browser  7474
+Neo4j Bolt     7687
+Redis          6379
+Prometheus     9090
+Grafana        3001
 ```
 
 ---
 
-### Session — 2026-09-17
+## Important Infrastructure Decisions
 
-**Phase worked on:** Phase 0 — Scaffolding
+### Python
 
-**Goal for this session:** Build the full repo skeleton per PRD.md §3 and §10 Phase 0: repo structure, Docker Compose (empty services), FastAPI `/health` 200, first Alembic migration, frontend boots, CI runs.
+Use **Python 3.11** for Cascadence.
 
-**Completed:**
-- Full directory tree per PRD.md §3 (backend/app/services/* for all 12 service modules, frontend/src/*, infra/, data/, ml/, docs/)
-- Backend: `config.py` (pydantic-settings, exact DATA_CONTRACT.md §1 field names), `db/postgres.py` + `db/neo4j_client.py` + `db/redis_client.py` (all lazy-connect so app boot never needs live services), `main.py` (`/health`, CORS, correlation-ID middleware, Prometheus instrumentation, error responses normalized to DATA_CONTRACT.md §4 shape), `celery_app.py`, `observability/logging_config.py` (structlog), `observability/metrics.py` (the four custom metrics named in PRD §8.12)
-- Verified locally: `uvicorn app.main:app` boots clean, `GET /health` → 200, `GET /docs` → 200, with zero Postgres/Neo4j/Redis running
-- Alembic initialized and wired to `app.config`/`Base.metadata`; baseline (empty) migration `7fd68b6689ff` generated
-- `pytest` harness set up; one smoke test (`tests/api/test_health.py`) passes
-- `ruff` + `mypy` both configured (`pyproject.toml`) and clean against the current codebase
-- Frontend: real Vite scaffold (`npm create vite@latest -- --template react-ts`), reshaped into PRD §3's `pages/components/hooks/api/store/types` layout; installed every library named in PRD §5; Tailwind v4 wired via `@tailwindcss/vite`; swapped default `oxlint` for `eslint` to match README's CI commitment
-- Verified locally: `npm run build` succeeds, `npm run lint` clean, dev server boots and serves 200
-- `infra/docker-compose.yml` — all 9 services from DATA_CONTRACT.md §1, healthchecks on postgres/neo4j/redis, backend/celery depend on those healthchecks; `infra/prometheus.yml`; `infra/grafana/{datasources,dashboards}` provisioning stubs; `infra/terraform/README.md` placeholder
-- `.github/workflows/ci.yml` — backend job (ruff, mypy, alembic upgrade against real service containers, pytest --cov), frontend job (eslint, tsc, npm test placeholder, build), docker-build verification job
-- `.env.example` at repo root matching DATA_CONTRACT.md §1 exactly
-- `data/seed/seed_demo.py` stub, `.gitkeep` placeholders in empty data/ml dirs
-- Backend and frontend Dockerfiles (frontend: multi-stage, nginx serving + reverse-proxying `/api` and `/ws` to the backend service)
-- Copied `PRD.md`, `DATA_CONTRACT.md`, `README.md` into `docs/` verbatim (per PRD §3 repo layout); also placed a root `README.md` (same content, links adjusted to `docs/`) since that's what renders as the GitHub landing page
+This is now consistent between:
 
-**Not completed / deferred:**
-- `docker compose up` was not actually run — no Docker daemon in this implementing environment. The compose file was validated by parsing it as YAML (structurally correct, all 9 services present) but container behavior (image pulls, healthcheck timing, inter-service DNS) is unverified. **Do this first, next session.**
-- Backend and frontend Dockerfiles were written but not build-tested for the same reason
-- No SQLAlchemy models yet — correctly deferred to Phase 1
+```text
+local venv
+Docker backend / Celery
+GitHub Actions
+```
 
-**Decisions made (and why):**
-- All three DB client modules (`postgres.py`, `neo4j_client.py`, `redis_client.py`) are lazy-connect by design, so "FastAPI `/health` 200" in Phase 0's milestone can be satisfied and verified without any live service — this was load-bearing for actually testing Phase 0 in this sandboxed environment, and it's also just a better pattern generally (the app process starting shouldn't be coupled to every dependency being up).
-- `env_file` paths in `docker-compose.yml` point to `../.env` (not `.env`) because Compose resolves relative paths against the compose file's own directory (`infra/`), but the README's quick start puts `.env` at the repo root.
-- `pyproject.toml` excludes `migrations/versions`, `migrations/env.py`, and `migrations/script.py.mako` from ruff's import-sort/upgrade rules — these are Alembic-generated/boilerplate files where fighting the autogenerated style isn't worth it; `app/` and `tests/` are held to the full ruleset.
+This should be preserved when PyTorch and PyTorch Geometric are introduced.
 
-**Deviations from PRD.md / DATA_CONTRACT.md (if any, and why):**
-- None to the contracts themselves. The `oxlint`→`eslint` swap in `frontend/package.json` isn't a deviation — it's making the actual toolchain match what `README.md`'s "CI" section already promised.
+### Docker networking
 
-**Blockers / open questions for next session:**
-- Need an environment with Docker available to actually run `docker compose -f infra/docker-compose.yml up -d` and confirm the full stack (Postgres, Neo4j+GDS, Redis, backend, celery_worker, celery_beat, frontend, Prometheus, Grafana) comes up clean, healthchecks pass, and the frontend's nginx proxy correctly reaches the backend container. Fix anything that breaks before starting Phase 1.
-- Once compose is confirmed, run `alembic upgrade head` against the real container (currently only tested against `localhost:5432` failing-to-connect, which correctly exercises the failure path but not the success path).
+Services communicate through Compose service names rather than localhost.
 
-**Files touched:**
-- Everything under `backend/`, `frontend/`, `infra/`, `data/`, `ml/`, `docs/`, `.github/workflows/ci.yml`, `.env.example`, root `README.md` — this was the initial scaffold, so effectively the whole repo.
+Examples:
+
+```text
+PostgreSQL → postgres:5432
+Neo4j      → neo4j:7687
+Redis      → redis:6379
+```
+
+The host machine can access exposed services through `localhost:<mapped-port>`.
+
+### Celery healthchecks
+
+The backend Dockerfile contains an HTTP `/health` healthcheck.
+
+Because the Celery services use the same backend image, they originally inherited this healthcheck and were incorrectly marked unhealthy even though Celery was operational.
+
+This was corrected in Compose:
+
+* backend → HTTP `/health`
+* celery worker → `celery inspect ping`
+* celery beat → inherited HTTP healthcheck disabled
+
+Do not reintroduce the backend HTTP healthcheck for Celery.
+
+### Environment configuration
+
+`.env.example` defines the contractual environment variable names.
+
+Local development uses a root `.env`, which must remain ignored by Git.
+
+Phase 2/3/LLM/alerting credentials can remain empty until their corresponding phases.
+
+---
+
+## CI Status
+
+GitHub Actions CI is configured for backend, frontend, and Docker validation.
+
+Backend CI includes:
+
+* Python 3.11
+* PostgreSQL
+* Neo4j
+* Redis
+* Ruff
+* mypy
+* Alembic migration
+* pytest + coverage
+
+Frontend CI includes:
+
+* Node 22
+* npm install
+* lint
+* TypeScript compilation
+* tests
+* production build
+
+Docker images for the backend and frontend are also built in CI.
+
+Earlier reproducibility issues involving `pytest-cov` and the backend Python import path have already been fixed.
+
+Keep CI green as new functionality is introduced.
+
+---
+
+# Next: Phase 1 — First End-to-End Intelligence Slice
+
+Phase 1 is the next implementation target.
+
+The objective is not to build isolated database or ML components. Build the first working vertical slice:
+
+```text
+Synthetic supply-chain network
+            ↓
+     PostgreSQL + Neo4j
+            ↓
+    PyTorch Geometric
+            ↓
+       Basic GCN
+            ↓
+      Risk inference
+            ↓
+   Persist risk scores
+            ↓
+       FastAPI APIs
+            ↓
+     React NetworkGraph
+```
+
+### Phase 1 milestone
+
+A synthetic multi-tier supply network should be:
+
+1. generated,
+2. persisted according to the existing data contract,
+3. represented as a graph,
+4. converted into a PyTorch Geometric graph,
+5. scored by a basic GNN,
+6. exposed through the backend,
+7. and visibly rendered in the frontend.
+
+The important APIs for this slice are:
+
+```text
+GET /graph/{company_id}
+GET /risk/{company_id}
+```
+
+Follow the exact response contracts defined in `DATA_CONTRACT.md`.
+
+---
+
+## Phase 1 Implementation Guidance
+
+Before writing Phase 1 code:
+
+1. Read `PRD.md`.
+2. Read `DATA_CONTRACT.md`.
+3. Inspect the existing repository and migrations.
+4. Do not invent schemas already defined by the contract.
+
+Then implement incrementally:
+
+```text
+synthetic data
+    ↓
+database schema + migration
+    ↓
+PostgreSQL persistence
+    ↓
+Neo4j graph persistence
+    ↓
+PyG conversion
+    ↓
+basic GCN baseline
+    ↓
+risk persistence
+    ↓
+graph/risk APIs
+    ↓
+frontend visualization
+```
+
+Run and verify each boundary before proceeding to the next.
+
+### PyTorch / PyG
+
+PyTorch and PyTorch Geometric have **not yet been added** to the project.
+
+Before installing them, check the development machine's NVIDIA/CUDA environment and select versions compatible with Python 3.11.
+
+The project documentation previously placed these dependencies in a later GNN phase, but the current Phase 1 vertical slice requires a basic GCN. Resolve that dependency/documentation mismatch intentionally when starting Phase 1.
+
+---
+
+## Architectural Constraints to Preserve
+
+`DATA_CONTRACT.md` is authoritative for implementation-level contracts.
+
+In particular, preserve its definitions for:
+
+* PostgreSQL entities
+* Neo4j `Company` and `Signal` nodes
+* `SUPPLIES` relationships
+* API request/response shapes
+* WebSocket messages
+* environment variable names
+* frontend `{nodes, links}` graph representation
+
+If implementation requires a contract change, update the contract deliberately rather than silently creating a second schema.
+
+The GNN/model and deterministic cascade engine calculate risk.
+
+**LLMs must not calculate risk scores.**
+
+Later LLM functionality should consume computed evidence and produce explanations/briefings.
+
+---
+
+## Handoff
+
+Phase 0 infrastructure is complete and verified.
+
+Do not spend another development cycle rebuilding or redesigning the foundation unless Phase 1 exposes a concrete problem.
+
+**Start with Phase 1 synthetic network persistence and the first database migration, then work vertically toward a GNN-scored graph visible in the React dashboard.**
