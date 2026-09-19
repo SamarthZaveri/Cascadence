@@ -27,3 +27,7 @@ ml/training/artifacts/*
 .DS_Store
 .vscode/
 .idea/
+
+data/cache/
+ml/nlp_cache/
+celerybeat-schedule*

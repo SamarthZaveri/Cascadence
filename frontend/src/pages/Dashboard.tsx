@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import NetworkGraph from "../components/NetworkGraph";
+import EvidencePanel, { IngestionStatus } from "../components/EvidencePanel";
 import RiskBadge from "../components/RiskBadge";
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [industry, setIndustry] = useState("");
@@ -37,6 +39,7 @@ export default function Dashboard() {
   if (riskSort)
     rows.sort((a, b) => (b.risk_score ?? -1) - (a.risk_score ?? -1));
   const refresh = () => {
+    for (const key of ["signals", "relationships", "ingestion-runs"]) void queryClient.invalidateQueries({queryKey: [key]});
     void companies.refetch();
     if (selected) {
       void graph.refetch();
@@ -56,13 +59,13 @@ export default function Dashboard() {
           ◈ &nbsp; Network overview
         </a>
         <div className="sidebar-note">
-          <span className="status-dot" /> Phase 1 · Local demo
+          <span className="status-dot" /> Phase 2 · Research prototype
           <p>A working foundation for understanding supply-chain exposure.</p>
         </div>
       </aside>
       <main>
         <header className="topbar">
-          <span>Workspace / Synthetic demonstration</span>
+          <span>Supply network / Evidence explorer</span>
           <a href="http://localhost:8000/docs" target="_blank" rel="noreferrer">
             API reference ↗
           </a>
@@ -85,9 +88,9 @@ export default function Dashboard() {
           </button>
         </section>
         <div className="demo-banner">
-          <strong>Synthetic data demonstration</strong>
+          <strong>Real sources + synthetic demonstration</strong>
           <span>
-            Fictional companies · GCN trained on simulated shocks · Scores are
+            Sources are labelled throughout · GCN trained on simulated shocks · Scores are
             not calibrated probabilities.
           </span>
         </div>
@@ -113,7 +116,7 @@ export default function Dashboard() {
               {risk.data?.latest?.score.toFixed(2) ?? "—"}
               <em> / 1.00</em>
             </strong>
-            <small>Learned synthetic risk index</small>
+            <small>Experimental risk index</small>
           </article>
         </section>
         <div className="content-grid">
@@ -173,7 +176,7 @@ export default function Dashboard() {
               <p className="panel-message">
                 {search || industry
                   ? "No companies match these filters."
-                  : "No companies yet. Run the demo seed command in the README, then refresh."}
+                  : "No companies yet. Import sources or load the synthetic demonstration to begin."}
               </p>
             )}
             <div className="company-list">
@@ -187,7 +190,7 @@ export default function Dashboard() {
                   <span>
                     <strong>{company.name}</strong>
                     <small>
-                      {company.industry} · {company.hq_country}
+                      {company.industry || "Industry unknown"} · {company.is_synthetic ? "Synthetic" : "SEC company"}
                     </small>
                   </span>
                   <RiskBadge score={company.risk_score} />
@@ -280,6 +283,8 @@ export default function Dashboard() {
             </div>
           </section>
         </div>
+        {selected && <EvidencePanel key={selected} companyId={selected} />}
+        <IngestionStatus />
         <section className="panel history-panel">
           <div className="panel-title">
             <div>
@@ -310,6 +315,7 @@ export default function Dashboard() {
                   <tr>
                     <th>Computed at</th>
                     <th>Risk index</th>
+                    <th>Input basis</th>
                     <th>Model version</th>
                     <th>Graph snapshot</th>
                   </tr>
@@ -323,6 +329,10 @@ export default function Dashboard() {
                           <i style={{ width: `${item.score * 100}%` }} />
                         </div>
                         {item.score.toFixed(3)}
+                      </td>
+                      <td>
+                        {item.input_basis === "observed_signals_experimental" ? "News · experimental" : "Synthetic scenario"}
+                        <small className="basis-count">{item.evidence_count ?? 0} direct evidence records</small>
                       </td>
                       <td>
                         <code title={item.model_version_id}>
@@ -342,9 +352,9 @@ export default function Dashboard() {
           ) : null}
         </section>
         <footer>
-          CASCADENCE / PHASE 01{" "}
+          CASCADENCE / PHASE 02{" "}
           <span>
-            Graph-based visibility. Synthetic evidence. Transparent limits.
+            Source evidence. Visible provenance. Transparent limits.
           </span>
         </footer>
       </main>

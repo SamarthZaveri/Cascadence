@@ -1,5 +1,6 @@
 import type {
   CompanyPage,
+  Page, Signal, Relationship, IngestionRun,
   GraphResponse,
   RiskResponse,
 } from "../types/intelligence";
@@ -31,6 +32,11 @@ export const api = {
       `/companies?${new URLSearchParams({ search, industry, page: String(page), page_size: "12" })}`,
       signal,
     ),
+  signals: (id: string, page: number, signal?: AbortSignal) =>
+    request<Page<Signal>>(`/companies/${id}/signals?page=${page}&page_size=10`, signal),
+  relationships: (id: string, page: number, signal?: AbortSignal) =>
+    request<Page<Relationship>>(`/relationships?company_id=${id}&page=${page}&page_size=10`, signal),
+  ingestionRuns: (signal?: AbortSignal) => request<Page<IngestionRun>>(`/ingestion/runs?page_size=5`, signal),
   graph: (id: string, depth: number, direction: string, signal?: AbortSignal) =>
     request<GraphResponse>(
       `/graph/${id}?depth=${depth}&direction=${direction}`,

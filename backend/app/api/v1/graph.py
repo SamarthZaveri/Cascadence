@@ -35,23 +35,35 @@ def get_graph(
             session.run(
                 CypherQuery(
                     f"MATCH (c:Company {{uuid:$id}}){pattern}(n:Company) "
-                    "RETURN DISTINCT n.uuid AS id, n.name AS name, n.tier AS tier LIMIT 1001",
+                    "RETURN DISTINCT n.uuid AS id, n.name AS name, n.tier AS tier, "
+                    "n.is_synthetic AS is_synthetic LIMIT 1001",
                     timeout=10,
                 ),
                 id=str(company_id),
             )
         )
         if not nodes:
-            raise HTTPException(409, "Company graph projection missing; rerun seeding")
+            raise HTTPException(
+                409, "Company graph projection missing; run ingestion reconciliation"
+            )
         if len(nodes) > 1000:
             raise HTTPException(422, "Graph is too large; reduce traversal depth")
         ids = [row["id"] for row in nodes]
         links = [
-            GraphLink(source=row["source"], target=row["target"], criticality=row["criticality"])
+            GraphLink(
+                source=row["source"],
+                target=row["target"],
+                criticality=row["criticality"],
+                provenance=row["provenance"],
+                evidence_ids=row["evidence_ids"],
+                confidence=row["confidence"],
+            )
             for row in session.run(
                 "MATCH (a:Company)-[r:SUPPLIES]->(b:Company) "
                 "WHERE a.uuid IN $ids AND b.uuid IN $ids "
-                "RETURN a.uuid AS source, b.uuid AS target, r.criticality AS criticality "
+                "RETURN a.uuid AS source, b.uuid AS target, r.criticality AS criticality, "
+                "coalesce(r.provenance, 'synthetic') AS provenance, "
+                "coalesce(r.evidence_ids, []) AS evidence_ids, r.confidence AS confidence "
                 "ORDER BY source, target",
                 ids=ids,
             )
@@ -68,6 +80,7 @@ def get_graph(
                 id=row["id"],
                 name=row["name"],
                 tier=row["tier"],
+                is_synthetic=row["is_synthetic"] is not False,
                 risk_score=scores.get(UUID(row["id"])),
             )
             for row in sorted(nodes, key=lambda item: (item["tier"], item["id"]))

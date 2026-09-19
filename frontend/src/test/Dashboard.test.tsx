@@ -2,12 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Dashboard from "../pages/Dashboard";
 import { api } from "../api/client";
 
 vi.mock("../api/client", () => ({
-  api: { companies: vi.fn(), graph: vi.fn(), risk: vi.fn() },
+  api: { companies: vi.fn(), graph: vi.fn(), risk: vi.fn(), signals: vi.fn(), relationships: vi.fn(), ingestionRuns: vi.fn() },
 }));
 vi.mock("../components/NetworkGraph", () => ({
   default: ({ onNodeClick }: { onNodeClick: (id: string) => void }) => (
@@ -38,6 +38,12 @@ function mount() {
   );
 }
 afterEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  const empty = {items: [], total: 0, page: 1, page_size: 10};
+  vi.mocked(api.signals).mockResolvedValue(empty);
+  vi.mocked(api.relationships).mockResolvedValue(empty);
+  vi.mocked(api.ingestionRuns).mockResolvedValue(empty);
+});
 
 function mockNetwork() {
   vi.mocked(api.companies).mockResolvedValue({
@@ -67,7 +73,7 @@ describe("Dashboard", () => {
     });
     mount();
     expect(
-      await screen.findByText(/Run the demo seed command/),
+      await screen.findByText(/Import sources or load the synthetic demonstration/),
     ).toBeInTheDocument();
     expect(api.graph).not.toHaveBeenCalled();
   });

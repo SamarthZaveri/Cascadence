@@ -1,6 +1,6 @@
 # Cascadence — Comprehensive project guide
 
-**State through Phase 1 · 18 September 2026**
+**State through Phase 2 · 19 September 2026**
 
 This guide explains what the project is, what has actually been built, how its pieces
 work, how to operate them, what the verification establishes, and what remains.
@@ -17,10 +17,10 @@ network will estimate risk using both a company's own evidence and its suppliers
 
 The wider product is intended to explain estimates, evaluate historical disruptions,
 recommend alternative suppliers, simulate scenarios, issue alerts, and narrate evidence
-into briefings. Those are the destination. The current deliverable is the first complete
-synthetic-data path through the architecture.
+into briefings. Those are the destination. The current deliverable combines the synthetic learning path with SEC/GDELT ingestion,
+reviewable source evidence and a graph that identifies real and synthetic inputs.
 
-**What works now:** generate a fictional network → store it → read it back → train a
+**The preserved Phase 1 path:** generate a fictional network → store it → read it back → train a
 GCN on other fictional networks → score the demo network → save scores with provenance →
 serve companies, graph, and history → render the React dashboard.
 
@@ -40,7 +40,9 @@ validate this GCN.
 | Model artifact reload and persisted inference | Implemented |
 | Company list, graph, risk and risk-history APIs | Implemented |
 | React dashboard and NetworkGraph | Implemented; automated component/build checks passed |
-| Real signals / SEC / GDELT | Phase 2, not implemented |
+| Real signals / SEC / GDELT | Implemented; operator setup/live-source acceptance required |
+| Evidence review, provenance, import audit | Implemented |
+| Observed-input GCN scoring | Implemented, explicitly experimental |
 | Satellite / AIS / VIIRS | Phase 3, not implemented |
 | GAT / GraphSAGE / temporal models | Phase 4, not implemented |
 | Explanations and historical backtests | Phase 5, not implemented |
@@ -49,9 +51,9 @@ validate this GCN.
 | Production deployment and demo video | Phase 8, not implemented |
 | Auth/workspace ownership | Contract exists; implementation pending |
 
-Phase 1 is implemented with passing automated checks. Full Docker Compose and visual
-browser acceptance on the user's development machine are still outstanding. A green
-remote GitHub Actions run has not been observed for these delivered files.
+The user confirmed Phase 1 CI green after installation and push. Phase 2 automated
+verification and its remaining acceptance checks are in PHASE2_VALIDATION.md. The
+new files have not been pushed to GitHub by this delivery.
 
 ## 3. Architecture and responsibility boundaries
 
@@ -82,7 +84,7 @@ flowchart TD
 | PyTorch Geometric | Graph tensors and GCN message passing | Learn from network dependencies |
 | React + TanStack Query | Dashboard, fetch state, cached queries | Interactive exploration and consistent loading/errors |
 | react-force-graph-2d | Canvas graph simulation/rendering | Visualize nodes, weights, and direction |
-| Redis | Existing broker/cache infrastructure | Supports future task orchestration and pub/sub |
+| Redis | Broker/result infrastructure | Supports Phase 2 Celery ingestion |
 | Celery worker/beat | Existing background-job infrastructure | Worker executes tasks; beat schedules them |
 | Prometheus/Grafana | Existing monitoring foundation | Collect and inspect service metrics |
 | Docker Compose | Local multi-container runtime | Starts services with consistent networking |
@@ -152,9 +154,9 @@ The added Alembic revision is `20260918_01`, following the original
 | `model_versions` | Architecture, training time, metrics, artifact path, active flag | Architecture enum; partial unique index permits at most one active model |
 | `risk_scores` | Company/model association, score, time, snapshot identity | Foreign keys; score CHECK in [0,1]; company/time index |
 
-The contract's other tables are still future specifications. In particular, there are
-no `signals`, workspace, explanation, recommendation, or simulation tables in this
-migration. Avoid assuming a table exists just because it appears in the PRD.
+This is the Phase 1 migration. Phase 2 adds signals, relationship review and ingestion
+audits in the next revision, described in §18. Workspaces, explanations, recommendations
+and simulations remain specifications.
 
 `companies.id`, `companies.neo4j_id`, and Neo4j `Company.uuid` carry the same UUID.
 `neo4j_id` is a stable string link, not Neo4j's internal node identifier.
@@ -363,7 +365,8 @@ generation remains a useful future improvement.
 
 ## 13. Running on your Windows machine
 
-Apply the complete-file delivery using `PHASE1_INSTALL.md`. Keep the existing `.env`.
+For the current update, use `PHASE2_INSTALL.md`; the commands below describe the
+preserved synthetic seed workflow. Keep the existing `.env`.
 From `C:\Users\Samarth\Desktop\cascadence`:
 
 ```powershell
@@ -419,27 +422,24 @@ migrations, and run pytest with coverage. Frontend checks install from the lockf
 lint, compile TypeScript, run component tests, and build browser assets. Docker builds
 run after backend/frontend jobs pass.
 
-This delivery changes CI to use `cascadence_test` for PostgreSQL and explicitly enables
-integration tests. Local default pytest skips them so it cannot accidentally mutate
-the normal demo database. To run integrations in your own Compose setup, create a
-separate test database once:
+Phase 1 configured native PostgreSQL 16/Neo4j services in CI and the user confirmed it
+passed. Phase 2 adds source/evidence tests plus an explicit dedicated-Neo4j guard. Local
+default pytest skips13 integration cases. Do not point Phase 2 tests at your demo graph:
+reconciliation replaces all Phase 2-managed edges for its SQL database.
+
+Run the isolated test stack from the repository root:
 
 ```powershell
-docker compose --env-file .env -f infra/docker-compose.yml exec postgres createdb -U cascadence cascadence_test
-docker compose --env-file .env -f infra/docker-compose.yml exec -e POSTGRES_DB=cascadence_test backend alembic upgrade head
-docker compose --env-file .env -f infra/docker-compose.yml exec -e POSTGRES_DB=cascadence_test -e CASCADENCE_TEST_INTEGRATION=1 backend pytest --cov=app
+docker compose -p cascadence-phase2-test -f infra/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
+docker compose -p cascadence-phase2-test -f infra/docker-compose.test.yml down -v
 ```
 
-Use your configured database username if it differs. If the test database already
-exists, skip `createdb`. Tests clean up their own deterministic Neo4j network IDs.
-Do not set the test flag against a production/demo SQL database; the fixture requires
-its name to end in `_test` as an additional guard.
-
-Locally, 28 backend tests and six frontend tests passed. The backend integration run
-used standalone Neo4j and PGlite; native PostgreSQL 16 and full Compose remain to be
-verified in CI/on your machine. A component test mocks canvas rendering, so a passing
-suite cannot establish that a real browser graph is visually correct. See the separate
-verification report for exact checks and limits.
+The second command removes only the explicitly named temporary test stack and its data.
+It does not target the normal demo project. The default Compose test command applies
+migrations and runs the entire backend suite against separate native stores. See
+PHASE2_VALIDATION.md for locally executed results; this new Docker recipe itself has not
+been executed in the delivery environment, where Docker is unavailable. Component tests
+mock the canvas, so they do not establish final visual appearance in a real browser.
 
 GitHub workflow configuration does not itself enable protected-branch rules. Requiring
 CI before merge is a repository setting that still must be configured/verified by the
@@ -465,36 +465,230 @@ The migration downgrade is destructive to Phase 1 tables and was tested only on 
 
 ## 16. Current engineering limits and next phases
 
-The pipeline establishes integration and reproducibility, not real predictive validity.
-Synthetic features are simple; the model is static; there is no temporal evidence,
-company resolution against real names, historical backtest, or calibrated uncertainty.
-The graph API is bounded for a small local demo, not optimized for commercial-scale graphs.
-Artifact storage is local, and failed runs may require manual orphan cleanup.
+The system establishes integration and traceable inputs, not predictive validity. The
+GCN remains static and synthetic-trained. Observed headline severity is a weak proxy;
+there is no historical backtest, calibrated uncertainty, measured supplier criticality,
+or complete commercial supply network. Company identity resolution is CIK-based where
+available; unmatched private-company names are excluded. The small-demo graph bounds
+and local artifacts are not a commercial-scale architecture.
 
-Phase 2 should introduce Signal ORM/migrations, compliant SEC fetching, GDELT news,
-normalization, entity/relation extraction, provenance, and conservative real/synthetic
-merging. Do not label rule-based guesses as confirmed supplier facts. Decide ownership
-and workspace authorization before tenant-specific ingestion/write endpoints.
+Phase 3 adds curated facility imagery, VIIRS and AIS. Phase 4 expands models, temporal
+aggregation, architecture comparisons and ablations. Phase 5 establishes explanations and
+historical backtesting. Phase 6 adds the distinct scenario engine, recommendations and
+alerts. Phase 7 adds narration and API productization; Phase 8 handles deployment and a
+reproducible public demo. Auth/workspace ownership must precede tenant-facing writes.
 
-Phase 3 adds curated facility imagery and activity proxies. Phase 4 introduces richer
-architectures, real signal aggregation, architecture comparisons, and ablations.
-Phase 5 establishes explanations and historical backtesting. Phase 6 builds the
-separate deterministic scenario engine, recommendations, and alerts. Phase 7 adds
-narration and API productization; Phase 8 delivers deployment and a reproducible demo.
+An LLM does not compute these scores or invent missing evidence. No satellite, image,
+AIS or VIIRS data is processed in the current phase.
 
-The LLM boundary stays the same throughout: it narrates structured evidence after
-computation. It does not generate risk scores or substitute confident prose for missing
-signals, explanations, or historical evidence.
+## 17. How to describe the project accurately
 
-## 17. How to explain the work in an interview
+“I built a supply-network intelligence prototype with PostgreSQL, Neo4j, FastAPI, React
+and PyTorch Geometric. It trains a GCN on reproducible synthetic graphs, imports SEC
+filings and GDELT headline evidence, proposes supplier relationships for human review,
+and displays mixed real/synthetic networks with source and model provenance. Applying
+the synthetic-trained model to real news is experimental; historical validation is a
+later phase.” Do not claim forecasting accuracy from synthetic MAE, candidate confidence,
+a green CI run, or a visually convincing graph.
 
-An accurate current description is: “I built a synthetic end-to-end supply-network risk
-prototype using PostgreSQL, Neo4j, PyTorch Geometric, FastAPI, and React. It generates
-reproducible multi-tier networks, trains a weighted GCN on separate synthetic graphs,
-persists model/version/snapshot provenance, and exposes an interactive network and risk
-history dashboard. Real-source ingestion and historical validation are the next stages.”
+## 18. Phase 2: complete source-to-dashboard flow
 
-The strongest current engineering evidence is the complete stored-data path, stable
-identities, model artifact reload, explicit edge orientation, reproducible graph splits,
-contract-driven APIs, idempotent reruns, and integration tests. Keep later-phase claims
-separate until they are implemented and measured.
+### 18.1 What changed
+
+Phase 2 adds real-source capability while retaining the Phase 1 demo. It does not ship a
+prepopulated live dataset or claim that an import has run on your computer. Start by
+importing one ticker after model setup. Real firms may initially be isolated nodes:
+annual reports often do not name suppliers, private firms may not resolve to the SEC
+catalog, and candidates stay pending until reviewed. An empty extraction is a valid
+result, not proof that a company has no suppliers.
+
+```mermaid
+flowchart TD
+  A["SEC filings"] --> C["NLP evidence"]
+  B["GDELT headlines"] --> C
+  C --> D["SQL signals and review records"]
+  D --> E["Operator review"]
+  E --> F["Neo4j approved supply graph"]
+  D --> G["Recent severity features"]
+  F --> H["Experimental GCN inference"]
+  G --> H
+  H --> I["Risk history and source snapshot"]
+  D --> J["Evidence dashboard"]
+  F --> J
+  I --> J
+```
+
+### 18.2 Source acquisition and bounds
+
+`http_client.py` fetches only approved SEC/GDELT HTTPS hosts, rejects credentials and
+unexpected ports, does not follow redirects, limits decoded responses to 20 MB, and
+writes successful cache entries atomically. It retries429/selected5xx/network errors up
+to three attempts. Retry-After seconds are honored up to 30 seconds; other retries use
+exponential delays. SEC has a one-token bucket at 5 requests/sec; GDELT is one per5 seconds.
+These limits operate in the serialized pipeline, not as a distributed global gateway.
+
+SEC begins with the public ticker/CIK catalog. The CIK is zero-padded to 10digits for
+submissions. The client examines recent forms, then at most three older segments if no
+supported annual form appears. Supported forms are10-K,20-F,40-F. The latest matching
+filing becomes a source record; amended forms and exhaustive filing history are outside
+this implementation. Validated accession/document paths determine the filing URL.
+HTML scripts/styles are removed and whitespace normalized before extraction. The cleaned
+text, SHA256, accession, form, date, CIK and URL are stored. Filing date is the evidence
+observation date; it does not assert a current shock or relationship inception.
+
+GDELT queries an English exact company-name phrase over1–30 days, at most50 latest records.
+Only returned headline/URL/metadata are used: no publisher scraping or full-text claims.
+Invalid dates/URLs, future observations and out-of-window records are dropped. Tracking
+query parameters/fragments are removed from canonical URL keys. The per-company query
+can miss abbreviations or articles outside the50-result cap; this is a bounded sample.
+
+Source cache TTLs: ticker catalog1day, submissions1hour, older segments1day, annual
+filing text365 days, GDELT 15 minutes. Cached data is not proof of continued source uptime.
+A source error is recorded with its stage/ticker and never replaced by fake observations.
+
+### 18.3 NLP and the meaning of its outputs
+
+Provision `en_core_web_lg` and `all-MiniLM-L6-v2` with the setup CLI. Runtime uses the
+saved spaCy directory and local-only SentenceTransformer loading. Missing model files
+produce explicit setup errors. Large learned weights are excluded from Git/this ZIP.
+
+Entity resolution combines spaCy ORG mentions with exact normalized-name phrase matching.
+Full and suffix-stripped company names map to SEC CIKs. Ambiguous aliases are excluded.
+Fuzzy similarity must be at least 92/100 with an8-point margin over the next alias;
+resolved fuzzy mentions still require review. Matching names identifies an entity, not
+a supplier relationship. Directional patterns such as “we purchase ... from X” or “we
+supply ... to X” determine candidate direction. Negated/hypothetical sentences are
+excluded. Processing is bounded to 3000 relevant blocks of 12000 characters each, and
+stored evidence excerpts to 1200 characters near the match. This is conservative rule
+extraction with learned NER, not an LLM or a supervised relation model.
+
+Headlines first require a company alias. Normalized MiniLM embeddings then give cosine
+relevance against a company-business description; the threshold is 0.20. Event keywords
+propose categories and embedding similarity resolves competing descriptions. The fixed
+heuristic severities are strike0.70, natural_disaster0.80, geopolitical0.75,
+financial_distress0.80, regulatory0.50. Neutral, unrecognized, negated or hypothetical
+headlines retain null severity. These constants are uncalibrated engineering inputs.
+A headline can mention a company without establishing its actual disruption impact.
+
+### 18.4 Storage, identities and review
+
+Migration20260918_02 adds three tables. `signals` stores raw/extracted evidence with
+source type, optional company, nullable severity and aware timestamps. `supply_relationships`
+stores directed candidates, evidence FK/excerpt, extraction confidence, placeholder
+criticality, provenance, review status and timestamps. `ingestion_runs` stores cycle
+status, tickers, counts, per-stage errors and timestamps. Risk rows gain input basis and
+direct evidence count; existing rows migrate as synthetic_scenario with count0.
+
+Real UUIDs are deterministic from SEC CIK. Synthetic Phase 1 UUIDs remain separate. Signal
+UUIDs combine company, source type and accession/canonical URL. Reprocessing refreshes
+extraction without resetting first ingestion time. Candidate keys combine filing signal
+and directed company pair; re-ingestion cannot undo approval or rejection. Metrics named
+“processed” count records handled, including reruns, and are not counts of new inserts.
+
+All candidates start pending. Approval by local CLI projects the relationship. Rejection
+removes its projection if no other approved record supports that pair. A graph link may
+aggregate multiple evidence IDs. Criticality0.5 is explicitly a placeholder, and extraction
+confidence is not a probability that the commercial fact is true. Graph `since` stores
+first-recorded date with an explicit basis flag. SEC geography stays unknown rather than
+misclassifying state names as countries. Real global tier is-1, displayed as unassigned.
+
+`augment` adds1–20 deterministic synthetic feeders to an existing real company, with
+synthetic names, flags and edge provenance. It is optional and additive: rerunning the
+same count deduplicates; a smaller count does not delete earlier feeders. It is useful
+for demonstrating a connected hybrid graph and must never be described as real evidence.
+
+### 18.5 Transactions, recovery and scheduling
+
+One PostgreSQL advisory lock covers all ingestion/review/augmentation/score writers and
+the original seed. SQL and Neo4j cannot share an atomic transaction. A partial source
+failure preserves successful evidence. A graph failure can leave SQL ahead of Neo4j;
+`reconcile` reprojects SQL companies/signals and rebuilds approved Phase 2 edges, preserving
+Phase 1 seed edges. This assumes one SQL database owns the graph. It is why tests must
+use their own Neo4j, not just a separate PostgreSQL database. Manual SQL deletion of
+companies/signals is not a supported synchronization workflow.
+
+A cycle records running→success/partial/failed. Model setup/identity failures can produce
+failed; one successful source with another failure produces partial. A zero-result
+successful news response is recorded as such. CLI partial/failed returns exit1. Interrupted
+running rows are marked failed when the next ingestion acquires the exclusive lock.
+If the process dies after a file write, unreferenced artifacts/cache files can remain;
+there is no automatic artifact garbage collector.
+
+Celery registers ingest_sources and ingest_watchlist. `--queue` submits the same pipeline.
+An empty configured watchlist disables periodic scheduling; otherwise beat runs every
+six hours by default, never more frequently than hourly. One worker process prevents
+multiple loaded NLP copies and unnecessary source concurrency. Time limits are14 minutes
+soft and15 minutes hard; an interrupted audit is recovered as described above. A Celery
+SUCCESS means the task returned; inspect the ingestion run's status for source success.
+Redis-backed queue execution/beat timing still need the local acceptance check.
+
+### 18.6 Experimental observed scoring
+
+The new inference routine reads usable news severity from the last30 days. It uses the
+active Phase 1 checkpoint without retraining or activating a new model version. Only weakly
+connected components that contain an observed signal are scored, so an unrelated synthetic
+demo is not rescored on every import. At most1000 total SQL companies are supported here.
+Nodes without their own usable news inside a scored component get a zero severity feature,
+with missingness preserved in the snapshot. Zero imputation is not a verified low-risk claim.
+
+The eight Phase 1 input features remain industry one-hot, synthetic flag and severity.
+Real nodes have a different provenance flag and input distribution from the training
+set. The bounded output is therefore labelled observed_signals_experimental everywhere.
+No active checkpoint or recent usable observations means skip with a reason; existing
+history remains visible with its computation time. A source outage does not erase prior
+scores or make them current. Scores after graph approval/augmentation require `score`
+or a later successful ingestion. Graph snapshots store evidence IDs, as-of/cutoff,
+missingness, features, links and model ID under observed_snapshots/<sha256>.json.
+
+### 18.7 APIs and dashboard behavior
+
+All reads use the original development-mode gate and structured error envelope. Company
+list adds a provenance filter; company detail adds CIK. Company signals, relationship
+records and ingestion runs are paginated with page sizes1–100. Full filing text stays in
+SQL; the browser receives titles, source URLs, extraction metadata and bounded excerpts.
+Graph {nodes,links} retains its original shape with additive provenance fields. Risk
+responses retain history/latest and add input_basis/evidence_count to each observation.
+
+The dashboard adds Signals & sources, Relationship evidence and Import activity panels.
+Evidence panels paginate independently; selecting another company resets their pages.
+Refresh updates evidence, graph, companies and risk; import status polls every30 seconds.
+Real companies have graph rings; synthetic links are dashed. Pending candidates are
+visible as evidence but do not appear as confirmed graph connections. Loading, empty,
+error, unknown severity and unscored states are explicit. Source strings render as text,
+source links accept only ordinary HTTP(S), and graph tooltips escape external names.
+
+### 18.8 Setup, review and operation
+
+Follow PHASE2_INSTALL.md for full Windows commands and exact file actions. Preserve your
+.env and add a genuine SEC contact User-Agent. Rebuild containers, migrate to 20260918_02,
+then run `python -m app.services.nlp.setup` inside backend. Preserve existing Phase 1 model
+artifacts; run the seed only if you need a model or want another synthetic training run.
+
+From repo root (each command runs inside the backend container):
+
+```powershell
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.ingestion.cli ingest --tickers AAPL --days 7
+```
+
+Inspect returned status, stage errors and company_ids. Search AAPL in the dashboard,
+review its signals and relationship evidence, then use a specific record UUID:
+
+```powershell
+$relationshipId = "PASTE_RELATIONSHIP_UUID"
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.ingestion.cli review --id $relationshipId --decision approved
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.ingestion.cli score
+```
+
+Use rejected instead of approved if evidence is insufficient. Approval asserts your
+review decision, not that automated extraction established truth. For explicit demo
+augmentation use `augment --company-id UUID --count 5`. To repair graph projection use
+`reconcile`. Add `--queue` to ingest for background execution after synchronous acceptance.
+
+### 18.9 Source references
+
+The SEC publishes submissions metadata through its [EDGAR APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces).
+Its [developer guidance](https://www.sec.gov/about/developer-resources) gives fair-access
+requirements and the10 requests/sec ceiling; this client uses a lower limit.
+GDELT's [DOC 2.0 introduction](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/)
+describes the document search API used for headline discovery. These references describe
+source interfaces, not validation of Cascadence's extracted relationships or risk model.

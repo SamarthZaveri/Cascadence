@@ -1,82 +1,83 @@
 # Cascadence — Implementation handoff
 
-Updated 2026-09-18. Keep this compact; full explanation belongs in `PROJECT_GUIDE.md`.
-Baseline for this delivery: `0997f82b15371e44f2891ca24a53b01d204722f9`.
+Updated 2026-09-19. Baseline: `9c74a451cff66b6e1b556148ef47b631b8aca7de`.
+Keep this compact; `PROJECT_GUIDE.md` contains the full system explanation.
 
 ## Current state
 
-**Phase 0: complete. Phase 1: implemented and tested; local Compose/browser acceptance
-still needs to be run on the development machine. Next development target: Phase 2.**
+Phase 0 complete. Phase 1 complete; the user confirmed their GitHub CI run green after
+installing/pushing it. Phase 2 implementation delivered on top of that commit. Local
+source acceptance and the new remote CI run remain to be performed after installation.
+Next development scope: Phase 3 imagery/extra signals. No image processing exists yet.
 
-Phase 0 already established FastAPI, React, PostgreSQL 16, Neo4j 5 + GDS, Redis,
-Celery worker/beat, Alembic, Prometheus/Grafana, Docker images, and GitHub Actions.
-Its Compose health checks were previously verified. Preserve Python 3.11 and the distinct
-backend HTTP / Celery ping / beat-disabled healthchecks.
+## What exists
 
-## Phase 1 implementation
+Phase 0 supplies FastAPI/React, PostgreSQL 16, Neo4j 5, Redis, Celery worker/beat, Alembic,
+Docker/Compose, observability and CI. Preserve Python 3.11 and distinct HTTP/worker/beat
+health checks. Phase 1 retains deterministic synthetic networks, stable UUIDs,
+supplier→customer edges, weighted two-layer GCN, graph-disjoint synthetic training,
+checkpoint reload, model activation, risk history, typed read APIs and dashboard.
 
-- `services/ingestion/synthetic_generator.py`: seeded, preferentially attached multi-tier
-  DAG. Stable UUIDs, supplier → customer edges, bounded criticality, synthetic provenance.
-- `stores.py`: PostgreSQL upsert + Neo4j MERGE, scoped edge replacement, graph readback.
-  Identical parameters reuse the same network; changed parameters create another network.
-- Migration `20260918_01` follows `7fd68b6689ff`; adds `companies`, `model_versions`,
-  `risk_scores`, foreign keys, score bounds, latest-score index, and one-active-model index.
-  Other contract tables are not implemented yet.
-- `services/gnn/`: stable PyG features, weighted two-layer GCN with local-feature head,
-  graph-disjoint train/validation/test sets, validation-selected checkpoint, safe reload,
-  persisted inference scores and model metadata. CPU Torch/PyG start here, intentionally
-  earlier than the old requirements comment; Phase 4 still owns model maturity.
-- `services/ingestion/seed.py` orchestrates the entire slice. Default: 60 companies,
-  four tiers, seed 42, 120 epochs. Re-seeding appends risk history. An advisory lock
-  prevents concurrent seed runs; artifacts precede atomic model/score persistence.
-- APIs: `/api/v1/companies`, `/graph/{company_id}`, `/risk/{company_id}`,
-  `/risk/{company_id}/history`. Typed responses; contract-shaped validation/errors;
-  pagination/filtering, directional graph traversal, null unscored values.
-- React `/dashboard`: company directory, filters, pagination, page-level risk sorting,
-  NetworkGraph, traversal controls, risk history, loading/error/empty states. ForceGraph
-  receives cloned data so its mutation cannot corrupt the query cache.
-- Compose mounts root data scripts and persistent ML artifacts. Vite local proxy points
-  to localhost; production frontend still uses the existing nginx proxy to backend.
+Phase 2 adds `signals`, `supply_relationships`, `ingestion_runs` via migration
+`20260918_02` after `20260918_01`. CIK uniquely identifies real companies; evidence
+UUIDv5 keys deduplicate SEC accessions/news URLs per company. Re-ingestion preserves
+first ingestion time and reviewed decisions. SQL is evidence/review truth; Neo4j is
+repairable. The shared advisory lock 18092026 serializes seeding, ingestion, review,
+augmentation and scoring.
 
-## Decisions and limits to preserve
+`services/ingestion/`: SEC ticker directory, recent/older annual submissions and cleaned
+filing text; GDELT English headline metadata; allowed-host HTTPS client, bounded retries,
+SEC 5 requests/sec and GDELT 1 request/5sec, response size bounds and disk cache; normalized
+signals; pipeline audit/status; SQL/Neo4j reconciliation; local CLI. No fixture fallback.
 
-`DATA_CONTRACT.md` §8 records deliberate Phase 1 clarifications. Graph JSON stays
-`{nodes,links}`. Company UUIDs match across stores. Only development-mode read access is
-available: other environments return 403; workspace_id is rejected rather than ignored.
-JWT/API-key auth and workspace isolation remain unimplemented.
+`services/nlp/`: explicit spaCy en_core_web_lg/MiniLM setup; runtime local-only models;
+ORG extraction plus exact/fuzzy CIK-catalog resolution; conservative directional supplier
+candidates; headline alias/cosine relevance and keyword/embedding event classification.
+All extracted relationships start pending, even high-confidence ones. Operator review
+is required. Unknown entities and negated/speculative relations are excluded. Severity
+is nullable and heuristic; GDELT discovery time is not verified publication time.
 
-Synthetic shocks are scenario inputs saved in snapshot JSON, not real Signal rows.
-Features contain no targets or previous risk scores. Relation type is retained in PyG
-edge attributes, while this basic GCN uses criticality weights. No LLM computes risk.
-Synthetic MAE is toy-task evidence only; scores are not calibrated probabilities.
+`tasks/ingestion.py` registers direct and watchlist Celery jobs. INGESTION_TICKERS empty
+means scheduling disabled; default configured cadence six hours, minimum one hour.
+Worker concurrency is one. INGESTION_CACHE_DIR and NLP_CACHE_DIR are shared host mounts.
+Missing NLP weights fail explicitly. SEC requires a real contact User-Agent, not the
+example value. `--queue` submits work; use ingestion_runs for pipeline success/partial/
+failed status, because task completion alone does not mean both sources succeeded.
 
-Cross-store writes are not atomic. A Neo4j failure can leave unscored SQL companies;
-rerunning the same seed repairs the projection. Failed artifact/SQL steps can leave an
-unreferenced artifact directory. Do not report a successful run until scores commit.
+APIs add company detail, paginated company signals, relationships and ingestion runs.
+Graph JSON remains {nodes,links}, with provenance additions. Dashboard shows source
+links, evidence, pending/approved/rejected labels, import issues, synthetic nodes/links,
+and risk input basis. Source text is escaped; unsafe source URL schemes are rejected.
 
-## Verification
+## Model and data limits
 
-Python 3.11.16: Ruff and mypy passed; 28 backend tests passed, 87% app statement coverage.
-Migration upgrade/downgrade/re-upgrade and Alembic drift check passed. Integration checks
-used actual Neo4j 5.24 and PGlite (PostgreSQL WASM over its wire protocol); this is not a
-PostgreSQL 16 container verification. Six frontend tests, clean npm install, lint,
-TypeScript and production build passed. Default seed scored 60 nodes / 98 edges.
-Docker is unavailable here and cloud browser access to localhost was blocked. CI was
-updated to run integrations against dedicated PostgreSQL 16/Neo4j services; its remote
-run has not been observed. See `PHASE1_VALIDATION.md` for full evidence.
+GCN training remains synthetic. Experimental observed inference uses 30-day max news
+severity and scores only components with usable evidence. No active model/evidence
+means skip with a reason. Missing node evidence inside a scored component is zero-imputed
+and recorded in snapshot JSON. Risk rows include input_basis/evidence_count; snapshots
+include signal IDs/cutoff/model ID. Outputs are not calibrated probabilities. SEC filings
+are relationship evidence, not current shocks. Criticality0.5 is a placeholder. `augment`
+explicitly adds synthetic feeders; it never claims they are real supplier relationships.
 
-## Run / resume
+Read APIs remain development-only; no auth, tenant isolation, public writes, historical
+backtests or deployed production service. Graph/read inference bounds suit a small demo.
+Cross-store writes are not atomic: after Neo4j failure, committed SQL is repaired with
+`reconcile`. Abandoned running audits become failed at the next ingestion. Review/augment
+update the graph; use `score` to append a new observed scoring run.
 
-From the repo root, retaining the existing `.env`:
-```powershell
-docker compose --env-file .env -f infra/docker-compose.yml up -d --build
-docker compose --env-file .env -f infra/docker-compose.yml exec backend alembic upgrade head
-docker compose --env-file .env -f infra/docker-compose.yml exec backend python data/seed/seed_demo.py
-```
-Open `/dashboard`, select the printed focal UUID via `?company=<uuid>`, depth 3, and
-confirm the graph plus history. Do not recreate Phase 0 or remove its baseline migration.
+The tracked backend/celerybeat-schedule runtime file is removed and ignored. Stop beat
+before deleting that file locally; it will regenerate its schedule at startup.
 
-**Next:** Phase 2 SEC EDGAR + GDELT ingestion, NLP normalization/extraction, Signal
-schema/migration, provenance-aware merging of real and synthetic nodes. Decide workspace
-authorization before exposing tenant-scoped ingestion or public write APIs. Keep the
-working Phase 1 slice intact while introducing real features.
+## Verification and resume
+
+Recovered delivery rechecked: Ruff/mypy pass; backend54 passed,1 skipped,87% statement
+coverage with Neo4j 5.24 + PGlite wire server. The skip is native cross-session lock
+verification, which PGlite cannot establish. Ten frontend tests, lint, TypeScript and
+build pass. Migration upgrade/drift/downgrade/re-upgrade pass. See PHASE2_VALIDATION.md
+for external-source and runtime limits. Native PostgreSQL 16, Docker and new remote CI
+are not claimed verified here. CI uses dedicated native stores; local isolated test
+Compose avoids touching the demo graph.
+
+Apply `PHASE2_INSTALL.md`, preserve `.env`, rebuild, migrate, provision NLP, then ingest
+one ticker. Inspect evidence and pending relationships before approval. Use `PROJECT_GUIDE.md`
+for the complete operating flow and `DATA_CONTRACT.md` §9 for exact additions.

@@ -38,6 +38,7 @@ jobs:
         working-directory: backend
     env:
       CASCADENCE_TEST_INTEGRATION: "1"
+      CASCADENCE_TEST_NEO4J_ISOLATED: "1"
       POSTGRES_HOST: localhost
       POSTGRES_USER: cascadence
       POSTGRES_PASSWORD: cascadence

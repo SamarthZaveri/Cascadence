@@ -1,17 +1,17 @@
 # Cascadence documentation
 
-Start with [UPDATES.md](UPDATES.md) for the current implementation state, then read
-[PRD.md](PRD.md) and [DATA_CONTRACT.md](DATA_CONTRACT.md) before making changes.
+Read UPDATES first for the current handoff, then PRD and DATA_CONTRACT before coding.
 
 | Document | Purpose |
 |---|---|
-| [PRD.md](PRD.md) | Product scope, architecture, module specifications, phases 0–8 |
-| [DATA_CONTRACT.md](DATA_CONTRACT.md) | Authoritative database, graph, API, and configuration contracts |
-| [UPDATES.md](UPDATES.md) | Compact handoff for a new coding session |
-| [PROJECT_GUIDE.md](PROJECT_GUIDE.md) | Comprehensive explanation of what exists through Phase 1 |
-| [PHASE1_VALIDATION.md](PHASE1_VALIDATION.md) | Executed checks, results, and verification limits |
-| [PHASE1_INSTALL.md](PHASE1_INSTALL.md) | Complete-file installation steps and add/overwrite/delete manifest |
+| [UPDATES.md](UPDATES.md) | Compact handoff through Phase 2; Phase 1 CI confirmed green by user |
+| [PROJECT_GUIDE.md](PROJECT_GUIDE.md) | Comprehensive architecture, data/ML flows, operations and limits through Phase 2 |
+| [PRD.md](PRD.md) | Product scope, phase order and implementation boundary clarifications |
+| [DATA_CONTRACT.md](DATA_CONTRACT.md) | Authoritative models, APIs, graph and configuration |
+| [PHASE2_INSTALL.md](PHASE2_INSTALL.md) | Full-file manifest, Windows install/check/run/push steps |
+| [PHASE2_VALIDATION.md](PHASE2_VALIDATION.md) | Executed checks and remaining acceptance work |
+| [PHASE1_INSTALL.md](PHASE1_INSTALL.md) | Historical Phase 1 delivery manifest |
+| [PHASE1_VALIDATION.md](PHASE1_VALIDATION.md) | Historical Phase 1 validation at delivery time |
 
-Use the [repository README](../README.md) for quick-start commands. Phase 1 is the
-synthetic intelligence slice. Later product capabilities in the PRD are specifications,
-not claims that those features already work.
+Historical reports preserve what was known then; UPDATES gives current status. Satellite,
+AIS and VIIRS start in Phase 3. PRD later features are specifications, not completion claims.

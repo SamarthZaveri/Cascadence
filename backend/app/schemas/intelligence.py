@@ -26,12 +26,16 @@ class GraphNode(BaseModel):
     name: str
     risk_score: float | None = Field(default=None, ge=0, le=1)
     tier: int
+    is_synthetic: bool = True
 
 
 class GraphLink(BaseModel):
     source: str
     target: str
     criticality: float = Field(ge=0, le=1)
+    provenance: str = "synthetic"
+    evidence_ids: list[str] = Field(default_factory=list)
+    confidence: float | None = None
 
 
 class GraphResponse(BaseModel):
@@ -46,6 +50,8 @@ class RiskObservation(BaseModel):
     model_version_id: UUID
     computed_at: datetime
     graph_snapshot_id: str
+    input_basis: str = "synthetic_scenario"
+    evidence_count: int = 0
 
 
 class RiskHistory(BaseModel):

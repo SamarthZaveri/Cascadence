@@ -344,3 +344,20 @@ Read APIs are development-only until authentication is wired. Exact company-list
 risk-history responses, absent-score behavior, graph depth bounds, model artifact paths,
 and rerun semantics are recorded in `DATA_CONTRACT.md` §8. Phase 4 must add real feature
 aggregation and richer model comparisons; Phase 5 must establish historical validity.
+
+
+## 13. Phase 2 implementation boundary (2026-09-19)
+
+Phase 2 implements SEC EDGAR annual filings, spaCy/MiniLM extraction, GDELT headline
+signals, idempotent SQL evidence, reviewable relationships, provenance-aware graph
+projection, read APIs, an evidence dashboard and opt-in Celery ingestion. Use explicit
+one-to-five ticker lists rather than workspace IDs until ownership/authentication exist.
+All relationship candidates require review. SEC client throughput is capped at 5/sec,
+below the10/sec ceiling; article publisher bodies are not downloaded. No image data is
+introduced. No live-source success is asserted on an API outage or missing NLP weights.
+
+Optional observed inference applies the existing GCN to recent heuristic news severity,
+with explicit experimental provenance and source snapshots. It does not retrain the
+GCN on real outcomes or validate forecasting ability. Phase 4 still owns model maturity;
+Phase 5 owns historical validation. Exact additional APIs/config and operational bounds
+are recorded in DATA_CONTRACT §9. Phase 3 remains the next scope.

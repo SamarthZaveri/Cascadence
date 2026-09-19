@@ -54,9 +54,14 @@ export default function NetworkGraph({
         backgroundColor="#101e2c"
         nodeRelSize={6}
         nodeColor={(node) => color(node.risk_score)}
-        nodeLabel="name"
+        nodeLabel={(node) => {
+          const label = document.createElement("span");
+          label.textContent = `${node.name} · ${node.is_synthetic === false ? "SEC company" : "Synthetic"}`;
+          return label.innerHTML;
+        }}
         nodeVal={(node) => (node.id === centerNodeId ? 3 : 1)}
-        linkColor={() => "#536577"}
+        linkColor={(link) => link.provenance === "sec_filing" ? "#80c1df" : "#536577"}
+        linkLineDash={(link) => link.provenance === "sec_filing" ? null : [4, 3]}
         linkWidth={(link) => 0.6 + link.criticality * 2}
         linkDirectionalArrowLength={5}
         linkDirectionalArrowRelPos={0.85}
@@ -64,6 +69,11 @@ export default function NetworkGraph({
         onNodeClick={(node) => onNodeClick(String(node.id))}
         nodeCanvasObjectMode={() => "after"}
         nodeCanvasObject={(node, context, scale) => {
+          if (node.is_synthetic === false) {
+            context.beginPath();
+            context.arc(node.x ?? 0, node.y ?? 0, node.id === centerNodeId ? 13 : 8, 0, 2 * Math.PI);
+            context.strokeStyle = "#e5edf5"; context.lineWidth = 1.5 / scale; context.stroke();
+          }
           if (node.id !== centerNodeId && scale < 1.3) return;
           context.font = `${11 / scale}px sans-serif`;
           context.fillStyle = "#e5edf5";
@@ -72,7 +82,7 @@ export default function NetworkGraph({
         }}
       />
       <div className="graph-caption">
-        Arrows follow supplier → customer · Click a company to explore
+        Arrows: supplier → customer · Ring: SEC company · Dashed link: synthetic
       </div>
       <details className="graph-accessible">
         <summary>Accessible company list ({nodes.length})</summary>
@@ -80,7 +90,7 @@ export default function NetworkGraph({
           {nodes.map((node) => (
             <li key={node.id}>
               <button onClick={() => onNodeClick(node.id)}>
-                {node.name} · Tier {node.tier} ·{" "}
+                {node.name} · {node.is_synthetic === false ? "SEC company" : "Synthetic"} · {node.tier >= 0 ? `Tier ${node.tier}` : "Tier not assigned"} ·{" "}
                 {node.risk_score === null
                   ? "Unscored"
                   : node.risk_score.toFixed(2)}

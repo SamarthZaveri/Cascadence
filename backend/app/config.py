@@ -53,6 +53,13 @@ class Settings(BaseSettings):
 
     MODEL_ARTIFACT_DIR: str = "../ml/training/artifacts"
 
+    INGESTION_CACHE_DIR: str = "../data/cache"
+    NLP_CACHE_DIR: str = "../ml/nlp_cache"
+    NLP_SPACY_MODEL: str = "en_core_web_lg"
+    NLP_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    INGESTION_TICKERS: str = ""
+    INGESTION_INTERVAL_SECONDS: int = 21600
+
     # --- Observability ---
     PROMETHEUS_ENABLED: bool = True
 

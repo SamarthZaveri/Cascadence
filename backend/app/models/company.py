@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.postgres import Base
@@ -9,6 +9,14 @@ from app.db.postgres import Base
 
 class Company(Base):
     __tablename__ = "companies"
+    __table_args__ = (
+        Index(
+            "uq_company_sec_cik",
+            "sec_cik",
+            unique=True,
+            postgresql_where=text("sec_cik IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     neo4j_id: Mapped[str] = mapped_column(String, unique=True)

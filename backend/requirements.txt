@@ -28,3 +28,10 @@ networkx==3.4.2
 # spacy, sentence-transformers  # Phase 2/3 — NLP
 # rasterio, opencv-python, sentinelhub  # Phase 3 — vision
 # anthropic                     # Phase 7 — briefings
+
+# Phase 2 learned NLP and source parsing
+spacy==3.8.7
+sentence-transformers==3.4.1
+transformers==4.49.0
+rapidfuzz==3.12.1
+beautifulsoup4==4.13.3

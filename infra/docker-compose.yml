@@ -50,6 +50,8 @@ services:
     env_file: ../.env
     environment:
       MODEL_ARTIFACT_DIR: /artifacts
+      INGESTION_CACHE_DIR: /ingestion-cache
+      NLP_CACHE_DIR: /nlp-cache
       POSTGRES_HOST: postgres
       NEO4J_URI: bolt://neo4j:7687
       REDIS_URL: redis://redis:6379/0
@@ -61,6 +63,8 @@ services:
       - ../backend:/app
       - ../data:/app/data:ro
       - ../ml/training/artifacts:/artifacts
+      - ../data/cache:/ingestion-cache
+      - ../ml/nlp_cache:/nlp-cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,6 +79,8 @@ services:
     env_file: ../.env
     environment:
       MODEL_ARTIFACT_DIR: /artifacts
+      INGESTION_CACHE_DIR: /ingestion-cache
+      NLP_CACHE_DIR: /nlp-cache
       POSTGRES_HOST: postgres
       NEO4J_URI: bolt://neo4j:7687
       REDIS_URL: redis://redis:6379/0
@@ -84,6 +90,8 @@ services:
       - ../backend:/app
       - ../data:/app/data:ro
       - ../ml/training/artifacts:/artifacts
+      - ../data/cache:/ingestion-cache
+      - ../ml/nlp_cache:/nlp-cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,13 +109,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    command: celery -A app.celery_app worker --loglevel=info
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
 
   celery_beat:
     build: ../backend
     env_file: ../.env
     environment:
       MODEL_ARTIFACT_DIR: /artifacts
+      INGESTION_CACHE_DIR: /ingestion-cache
+      NLP_CACHE_DIR: /nlp-cache
       POSTGRES_HOST: postgres
       NEO4J_URI: bolt://neo4j:7687
       REDIS_URL: redis://redis:6379/0
@@ -117,6 +127,8 @@ services:
       - ../backend:/app
       - ../data:/app/data:ro
       - ../ml/training/artifacts:/artifacts
+      - ../data/cache:/ingestion-cache
+      - ../ml/nlp_cache:/nlp-cache
     depends_on:
       postgres:
         condition: service_healthy

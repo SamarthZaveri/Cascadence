@@ -326,3 +326,76 @@ advisory lock, upserts Postgres companies, synchronizes Neo4j, then reads back t
 graph before inference. Model activation + score insertion commit together only after
 artifacts and graph projection succeed. On graph failure, company rows may remain
 unscored; rerun the identical command to repair. No completed run is claimed on failure.
+
+
+## 9. Phase 2 implementation contract (2026-09-19)
+
+Phase 2 implements SEC annual-filing and GDELT headline ingestion. No image inputs yet.
+Writes are operator CLI/Celery tasks; read APIs remain development-only. Workspaces,
+authentication, public write endpoints and historical model validation remain deferred.
+
+Additional config: INGESTION_CACHE_DIR=../data/cache; NLP_CACHE_DIR=../ml/nlp_cache;
+NLP_SPACY_MODEL=en_core_web_lg; NLP_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2;
+INGESTION_TICKERS= (comma-separated, max five); INGESTION_INTERVAL_SECONDS=21600
+(minimum effective interval 3600). Empty tickers disable scheduling. Compose shares
+/ingestion-cache and /nlp-cache between backend, worker and beat. Models download only
+through the setup CLI, then runtime loads locally. A real SEC contact User-Agent is
+required. No paid API key is required.
+
+`signals` implements §2: raw_payload/extracted_data JSONB, nullable checked severity,
+aware observed/ingested timestamps, contracted source enum. UUIDv5 identity combines
+company UUID, source type, and SEC accession/canonical news URL. Reprocessing preserves
+first ingested_at. Company CIK is uniquely indexed; real identities never replace
+synthetic company UUIDs. Unknown geography remains null.
+
+`supply_relationships`: UUID PK; supplier_id/customer_id company FKs; nullable
+source_signal_id FK; relationship_type string; criticality/confidence bounded floats;
+evidence text; status pending|approved|rejected; provenance sec_filing|synthetic;
+created_at and nullable reviewed_at timestamptz. Self-links are rejected; real edges
+require a source signal. All extracted candidates require explicit human approval.
+Reruns preserve review decisions. Criticality 0.5 is an explicit placeholder.
+
+`ingestion_runs`: UUID PK; status running|success|partial|failed; started_at and nullable
+finished_at; tickers list, summary object, errors list as JSONB. A source failure never
+becomes synthetic evidence. On the next exclusive ingestion, abandoned running rows
+are marked failed. All writers use PostgreSQL advisory lock 18092026, shared with seed.
+SQL stores evidence/review decisions; Neo4j projection failures are repairable with
+`reconcile`. Do not claim cross-store atomicity. CLI partial/failed exits nonzero.
+
+`risk_scores` adds input_basis (default synthetic_scenario) and evidence_count (default 0,
+nonnegative). `observed_signals_experimental` uses the active synthetic-trained GCN and
+30-day maximum news severity. No usable evidence/model means skip, never a fake zero.
+Only components containing observed evidence are scored; missing node features within
+those components are zero-imputed and recorded. Snapshots preserve signal IDs, cutoff,
+missingness, features, edges, model ID. These outputs are experimental, not calibrated.
+
+Neo4j real Company tier=-1 (unknown), with is_synthetic=false. Signal/AFFECTED_BY follow
+§3. Approved SQL relationships alone project into Phase 2-managed SUPPLIES edges, with
+provenance, evidence_ids, confidence. `since` means first recorded, with
+since_basis=first_recorded. One graph edge aggregates approved evidence for a pair;
+rejecting one record removes the edge only if no approved evidence remains. Legacy
+Phase 1 edges are synthetic. Explicit `augment` adds labelled synthetic suppliers to a
+real company. Review/augmentation repair the graph; `score` refreshes scores separately.
+
+Wire additions (all under /api/v1): graph stays {nodes,links}; nodes add is_synthetic,
+links add provenance, evidence_ids and nullable confidence. Risk items add input_basis
+and evidence_count. GET /companies adds optional is_synthetic filter. GET /companies/{id}
+returns CompanySummary + sec_cik. GET /companies/{id}/signals accepts source_type,page,
+page_size; returns {items,total,page,page_size}. Signal items: id, company_id,
+source_type, title, source_url, extracted_data, severity_score, observed_at, ingested_at.
+GET /relationships accepts company_id,status,page,page_size and returns that same page
+shape; records include all SQL fields plus supplier_name,customer_name,source_url.
+GET /ingestion/runs accepts page,page_size and returns that page shape. Page sizes1..100.
+Recent signals use their own paginated endpoint, refining the future detail API in §4.
+
+GDELT processes English headlines/metadata only; seendate is discovery time. Aliases
+must occur in a headline before MiniLM cosine filtering. Severity is an unverified
+keyword/embedding heuristic. Neutral, negated, hypothetical text has null severity.
+SEC extraction uses spaCy ORG entities, exact/fuzzy CIK-catalog matching and conservative
+directional patterns. Ambiguous/unresolved entities are excluded. At most3000 relevant
+sentence-like blocks,12000 characters each, are processed; full cleaned filing text
+and SHA256 are retained. Excerpts are at most1200 characters. No match does not prove
+absence of suppliers. Real suppliers are never invented to connect a graph.
+
+Integration tests require a dedicated *_test PostgreSQL database AND a dedicated Neo4j,
+acknowledged with CASCADENCE_TEST_NEO4J_ISOLATED=1. Never use the demo graph for tests.
