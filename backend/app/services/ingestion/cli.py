@@ -2,7 +2,6 @@ import argparse
 import json
 from uuid import UUID
 
-from app.services.ingestion.pipeline import run_ingestion_cycle, validate_tickers
 from app.services.ingestion.repository import augment, reconcile, review_relationship, writer_lock
 
 
@@ -21,8 +20,12 @@ def main():
     demo.add_argument("--count", type=int, default=5)
     sub.add_parser("reconcile")
     sub.add_parser("score")
+    cleanup = sub.add_parser("cleanup-synthetic")
+    cleanup.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     if args.command == "ingest":
+        from app.services.ingestion.pipeline import run_ingestion_cycle, validate_tickers
+
         tickers = validate_tickers(args.tickers)
         if not 1 <= args.days <= 30:
             parser.error("days must be 1–30")
@@ -36,6 +39,10 @@ def main():
         result = review_relationship(args.id, args.decision)
     elif args.command == "augment":
         result = augment(args.company_id, args.count)
+    elif args.command == "cleanup-synthetic":
+        from app.services.ingestion.cleanup import cleanup_synthetic
+
+        result = cleanup_synthetic(args.apply)
     elif args.command == "score":
         from app.services.gnn.observed_inference import score_observed_network
 

@@ -4,6 +4,7 @@ module never requires a live Redis instance. Used for: Celery result/cache looku
 outside the broker itself, rate limiting (middleware/rate_limit.py), and pub/sub
 (simulation/streaming.py).
 """
+
 import redis
 
 from app.config import get_settings

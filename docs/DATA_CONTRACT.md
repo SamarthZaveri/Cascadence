@@ -399,3 +399,116 @@ absence of suppliers. Real suppliers are never invented to connect a graph.
 
 Integration tests require a dedicated *_test PostgreSQL database AND a dedicated Neo4j,
 acknowledged with CASCADENCE_TEST_NEO4J_ISOLATED=1. Never use the demo graph for tests.
+
+## 10. Phase 3 contract (2026-09-21)
+
+Phase 3 overrides the earlier hybrid-demo presentation: the frontend requests real-only
+records and never renders synthetic companies/edges or mixed-network scores. Legacy
+research APIs retain their default behavior unless the real-only flag is specified.
+
+### Configuration
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PHASE3_CACHE_DIR` | `../data/phase3_cache` | Persistent source rasters, PNGs and NOAA subset |
+| `PHASE3_INPUT_DIR` | `../data/phase3_inputs` | Operator-provided AIS CSV root |
+| `EARTHDATA_TOKEN` | absent | NASA Earthdata bearer token, backend only |
+| `PHASE3_LOCATIONS` | empty | Comma-separated installed slugs; empty disables Beat collection |
+| `PHASE3_INTERVAL_SECONDS` | `86400` | Beat interval, clamped to at least one day |
+| `COPERNICUS_CLIENT_ID`, `COPERNICUS_CLIENT_SECRET` | absent | Existing names; free CDSE Sentinel Hub OAuth client |
+
+Compose maps cache/input paths to `/phase3-cache` and `/phase3-inputs`, shared between
+backend, worker and beat. Input mount is read-only. Secrets remain in `.env`; no token is
+stored in evidence/provenance or sent to the frontend. Python remains 3.11 for Docker/CI.
+
+### Migration and storage
+
+Revision `20260920_03` follows `20260918_02`. Adds:
+
+- `monitored_locations`: UUID PK, unique slug, name, kind, WGS84 latitude/longitude,
+  radius_km, JSONB details (context URL, coordinate basis, notes, checked date). Latitude
+  limited to [-80,80], longitude [-180,180], radius (0,20] km. No antimeridian areas.
+- `company_locations`: compound PK/FKs (company_id, location_id), relationship label,
+  source_url. This is context association, not inferred supply or disruption causality.
+- `disruption_cases`: UUID PK, company FK, title, summary, event_start/end (end nullable),
+  published_at, checked_at, reported_status, source_url; index company/date.
+- `signals.location_id`: nullable FK, index (location_id, observed_at). Sensor observations
+  have location_id set and company_id NULL. Existing company signal behavior is preserved.
+- `supply_relationships.provenance` allows `public_source` alongside `sec_filing` and
+  `synthetic`. Curated source relationships start approved; later review decisions survive
+  bootstrap reruns. Criticality 0.5 remains an explicit unmeasured placeholder.
+
+Downgrade refuses while Phase 3 locations/cases/public-source edges exist. Export and
+explicitly remove Phase 3 records before downgrading; never silently drop observations.
+
+### Sensor signal semantics
+
+`source_type` is satellite, viirs or ais; `severity_score` is NULL. JSON `extracted_data`
+contains origin=location_observation, eligible_for_scoring=false, algorithm, metrics,
+provenance, and optional images={before:{sha256},after:{sha256}}. PNG files live under
+`PHASE3_CACHE_DIR/images/<sha256>.png`. API verifies the digest and never accepts file paths.
+Observation UUIDv5 includes location, source, observed_at, stable source provenance and algorithm version.
+Download timestamps are excluded from identity; different target dates remain distinct.
+Reruns preserve first ingested_at. Acquisition time and ingestion time are different.
+
+Sentinel metrics: surface_change [0,1], mean_ndvi_change, common_valid_fraction, algorithm
+and interpretation. Two cloud-filtered real acquisitions within ±7 days of requested
+centers; at most 100 candidate scenes; cloud-cover <=35%, pixel SCL/dataMask filtering,
+minimum 50% common valid coverage. Requests use identical bounding box and 256x256 grid.
+This is a surface-change proxy, not validated factory activity or disruption severity.
+
+VIIRS: VNP46A3.002 completed-month all-angle snow-free radiance, quality=0 and at least
+three valid observations; scaling/fill metadata, common coverage, tile/grid/units checked.
+Metrics include before/after mean radiance and relative decrease (NULL for baseline <=0.1).
+Dates refer to monthly composites; observed_at is the end of the composite month. It is
+not an instantaneous acquisition or a production-output measurement.
+
+AIS: original NOAA WGS84 WKB point data is decoded into a small Los Angeles harbor CSV
+covering Jan 1–4, 2024. Downloads happen explicitly via `download-ais`; no sample is
+fabricated or presumed bundled. SHA256 manifest records source-file hashes and filters.
+Four UTC days with >=4h observed span each are required. Metric = target-day distinct
+vessels / preceding three-day median. Missing coverage is an error, never zero activity.
+Receiver coverage is unknown; activity ratio is not verified congestion. Other locations
+require operator CSV (MMSI, BaseDateTime, LAT, LON, SOG), source URL and target day.
+
+### Read APIs
+
+All paths below are under `/api/v1`; pagination uses items/total/page/page_size.
+
+| Endpoint | Parameters | Result |
+|---|---|---|
+| `GET /locations` | optional company_id, page>=1, page_size<=100 | Location records + real company associations |
+| `GET /locations/{uuid}/signals` | optional source_type= satellite/viirs/ais, page, page_size | Source title/URL, metrics/provenance, timestamps; unknown location 404 |
+| `GET /signals/{uuid}/images/{role}` | role=before/after | image/png; absent/corrupt/unsafe cache reference 404 |
+| `GET /cases` | optional company_id, page, page_size | Dated real-company cases, reported and display status |
+| `GET /sources/status` | none | items: source_type/configured/latest_observed_at/note |
+
+Source status means configuration/cache presence, not verified provider connectivity.
+Case status is historical, ongoing_as_reported (publication age 0–30 days), or
+current_status_unverified. It never asserts that a dated incident is still ongoing.
+
+Existing company detail/signals, graph, risk/history and relationships accept
+`real_only=true`. Companies list uses `is_synthetic=false`. Real graph traversal excludes
+synthetic nodes and edges without sec_filing/public_source provenance and evidence IDs;
+it does not traverse synthetic intermediaries. Real-only scores require input_basis
+`observed_real_network_experimental`. This new basis restricts inference to real nodes
+and supported edges. The GCN weights are still synthetic-trained and uncalibrated.
+Location/case/curated-relationship signals are excluded from current scoring.
+
+### Operations and cleanup
+
+The shared advisory lock 18092026 serializes cleanup, bootstrap, ingestion and scoring.
+`cleanup-synthetic` previews counts; `--apply` deletes flagged synthetic companies and
+dependents, synthetic relationships, and risk rows not using the new real-network basis.
+It preserves real source evidence, locations, companies, model versions and model files.
+Neo4j deletes synthetic-marked/known-synthetic nodes and synthetic-provenance edges;
+unknown-provenance real-to-real relationships are not destructively guessed synthetic.
+Real-only traversal hides unsupported relationships. Cleanup is rerunnable and dev-only.
+Cross-store writes are not atomic; rerun cleanup, then `reconcile`, after interruptions.
+
+`bootstrap` installs the dated catalog transactionally in SQL then projects Neo4j; a graph
+failure reports partial and the committed SQL can be reconciled. `collect` is bounded to
+1–20 locations, records per-provider errors, saves successful observations independently,
+and reports success/partial/failed in ingestion_runs. `--locations all` expands installed
+slugs. The default seed entry now bootstraps real catalog; `--synthetic` explicitly opts
+into legacy Phase 1 research seeding. No automatic fake-data fallback exists.

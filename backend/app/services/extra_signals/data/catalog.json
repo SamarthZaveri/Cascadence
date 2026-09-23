@@ -1,0 +1,422 @@
+{
+  "version": 1,
+  "checked_at": "2026-09-21",
+  "companies": [
+    {
+      "slug": "apple",
+      "name": "Apple Inc.",
+      "ticker": "AAPL",
+      "cik": "320193",
+      "industry": "Electronics",
+      "country": "US",
+      "source_url": "https://www.apple.com/newsroom/2022/11/update-on-supply-of-iphone-14-pro-and-iphone-14-pro-max/"
+    },
+    {
+      "slug": "toyota",
+      "name": "Toyota Motor Corporation",
+      "ticker": "TM",
+      "cik": "1094517",
+      "industry": "Manufacturing",
+      "country": "JP",
+      "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html"
+    },
+    {
+      "slug": "maersk",
+      "name": "A.P. Moller - Maersk",
+      "ticker": null,
+      "cik": null,
+      "industry": "Logistics",
+      "country": "DK",
+      "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html"
+    },
+    {
+      "slug": "cma-cgm",
+      "name": "CMA CGM",
+      "ticker": null,
+      "cik": null,
+      "industry": "Logistics",
+      "country": "FR",
+      "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html"
+    },
+    {
+      "slug": "tsmc",
+      "name": "Taiwan Semiconductor Manufacturing Company",
+      "ticker": "TSM",
+      "cik": "1046179",
+      "industry": "Electronics",
+      "country": "TW",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "slug": "amkor",
+      "name": "Amkor Technology, Inc.",
+      "ticker": "AMKR",
+      "cik": "1047127",
+      "industry": "Electronics",
+      "country": "US",
+      "source_url": "https://www.apple.com/newsroom/2023/11/apple-announces-expanded-partnership-with-amkor-for-silicon-packaging/"
+    },
+    {
+      "slug": "corning",
+      "name": "Corning Incorporated",
+      "ticker": "GLW",
+      "cik": "24741",
+      "industry": "Materials",
+      "country": "US",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "slug": "texas-instruments",
+      "name": "Texas Instruments Incorporated",
+      "ticker": "TXN",
+      "cik": "97476",
+      "industry": "Electronics",
+      "country": "US",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    }
+  ],
+  "locations": [
+    {
+      "slug": "zhengzhou-assembly",
+      "name": "Zhengzhou assembly area",
+      "kind": "facility",
+      "latitude": 34.545,
+      "longitude": 113.846,
+      "radius_km": 3,
+      "details": {
+        "source_url": "https://www.apple.com/newsroom/2022/11/update-on-supply-of-iphone-14-pro-and-iphone-14-pro-max/",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "toyota-motomachi",
+      "name": "Toyota Motomachi",
+      "kind": "facility",
+      "latitude": 35.073,
+      "longitude": 137.124,
+      "radius_km": 2,
+      "details": {
+        "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "toyota-takaoka",
+      "name": "Toyota Takaoka",
+      "kind": "facility",
+      "latitude": 35.029,
+      "longitude": 137.081,
+      "radius_km": 2,
+      "details": {
+        "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "toyota-tsutsumi",
+      "name": "Toyota Tsutsumi",
+      "kind": "facility",
+      "latitude": 35.019,
+      "longitude": 137.131,
+      "radius_km": 2,
+      "details": {
+        "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "toyota-tahara",
+      "name": "Toyota Tahara",
+      "kind": "facility",
+      "latitude": 34.734,
+      "longitude": 137.295,
+      "radius_km": 3,
+      "details": {
+        "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "tsmc-phoenix",
+      "name": "TSMC Phoenix area",
+      "kind": "facility",
+      "latitude": 33.805,
+      "longitude": -112.151,
+      "radius_km": 4,
+      "details": {
+        "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "amkor-peoria",
+      "name": "Amkor Peoria development area",
+      "kind": "facility",
+      "latitude": 33.777,
+      "longitude": -112.281,
+      "radius_km": 5,
+      "details": {
+        "source_url": "https://www.apple.com/newsroom/2023/11/apple-announces-expanded-partnership-with-amkor-for-silicon-packaging/",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Facility development announced in 2023; operating status not inferred from imagery.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "corning-harrodsburg",
+      "name": "Corning Harrodsburg area",
+      "kind": "facility",
+      "latitude": 37.765,
+      "longitude": -84.83,
+      "radius_km": 3,
+      "details": {
+        "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "ti-sherman",
+      "name": "Texas Instruments Sherman area",
+      "kind": "facility",
+      "latitude": 33.657,
+      "longitude": -96.613,
+      "radius_km": 4,
+      "details": {
+        "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "port-los-angeles",
+      "name": "Port of Los Angeles",
+      "kind": "port",
+      "latitude": 33.72,
+      "longitude": -118.265,
+      "radius_km": 4,
+      "details": {
+        "source_url": "https://www.portoflosangeles.org/business/statistics/facts-and-figures",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Bundled AIS covers a smaller inner-harbor box, not the entire port.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "port-long-beach",
+      "name": "Port of Long Beach",
+      "kind": "port",
+      "latitude": 33.754,
+      "longitude": -118.218,
+      "radius_km": 4,
+      "details": {
+        "source_url": "https://polb.com/port-info/port-facts/",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    },
+    {
+      "slug": "bab-al-mandab",
+      "name": "Bab al-Mandab monitoring area",
+      "kind": "canal",
+      "latitude": 12.61,
+      "longitude": 43.34,
+      "radius_km": 15,
+      "details": {
+        "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html",
+        "coordinate_basis": "Manually selected approximate WGS84 center; not surveyed or a facility polygon",
+        "notes": "Approximate regional sample. Changes do not establish facility output or company impact.",
+        "checked_at": "2026-09-21"
+      }
+    }
+  ],
+  "company_locations": [
+    {
+      "company": "apple",
+      "location": "zhengzhou-assembly",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2022/11/update-on-supply-of-iphone-14-pro-and-iphone-14-pro-max/"
+    },
+    {
+      "company": "toyota",
+      "location": "toyota-motomachi",
+      "relationship": "operator",
+      "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html"
+    },
+    {
+      "company": "toyota",
+      "location": "toyota-takaoka",
+      "relationship": "operator",
+      "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html"
+    },
+    {
+      "company": "toyota",
+      "location": "toyota-tsutsumi",
+      "relationship": "operator",
+      "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html"
+    },
+    {
+      "company": "toyota",
+      "location": "toyota-tahara",
+      "relationship": "operator",
+      "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html"
+    },
+    {
+      "company": "tsmc",
+      "location": "tsmc-phoenix",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "company": "apple",
+      "location": "tsmc-phoenix",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "company": "amkor",
+      "location": "amkor-peoria",
+      "relationship": "planned supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2023/11/apple-announces-expanded-partnership-with-amkor-for-silicon-packaging/"
+    },
+    {
+      "company": "apple",
+      "location": "amkor-peoria",
+      "relationship": "planned supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2023/11/apple-announces-expanded-partnership-with-amkor-for-silicon-packaging/"
+    },
+    {
+      "company": "corning",
+      "location": "corning-harrodsburg",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "company": "apple",
+      "location": "corning-harrodsburg",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "company": "texas-instruments",
+      "location": "ti-sherman",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "company": "apple",
+      "location": "ti-sherman",
+      "relationship": "supplier facility",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/"
+    },
+    {
+      "company": "maersk",
+      "location": "bab-al-mandab",
+      "relationship": "reported route exposure",
+      "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html"
+    },
+    {
+      "company": "cma-cgm",
+      "location": "bab-al-mandab",
+      "relationship": "reported route exposure",
+      "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html"
+    }
+  ],
+  "cases": [
+    {
+      "slug": "apple-2022",
+      "company": "apple",
+      "title": "Zhengzhou iPhone shipment constraints",
+      "summary": "Apple reported reduced assembly capacity following COVID restrictions and longer waits for iPhone 14 Pro models.",
+      "event_start": "2022-11-06",
+      "event_end": null,
+      "published_at": "2022-11-06",
+      "reported_status": "historical",
+      "source_url": "https://www.apple.com/newsroom/2022/11/update-on-supply-of-iphone-14-pro-and-iphone-14-pro-max/"
+    },
+    {
+      "slug": "toyota-2022",
+      "company": "toyota",
+      "title": "Parts shortages and Japanese plant suspensions",
+      "summary": "Toyota announced rolling May and June suspensions after Shanghai lockdowns constrained parts supply. Dates describe this notice\u2019s schedule, not resolution of all shortages.",
+      "event_start": "2022-05-09",
+      "event_end": "2022-06-03",
+      "published_at": "2022-05-24",
+      "reported_status": "historical",
+      "source_url": "https://global.toyota/en/newsroom/corporate/37370481.html"
+    },
+    {
+      "slug": "maersk-2026",
+      "company": "maersk",
+      "title": "Reported Red Sea route exposure",
+      "summary": "Le Monde reported Maersk vessels crossing Bab al-Mandab during renewed security threats. Company-specific delays were not established.",
+      "event_start": "2026-09-07",
+      "event_end": null,
+      "published_at": "2026-09-14",
+      "reported_status": "ongoing",
+      "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html"
+    },
+    {
+      "slug": "cma-2026",
+      "company": "cma-cgm",
+      "title": "Reported Red Sea shipping security concern",
+      "summary": "Le Monde reported CMA CGM traffic through the threatened strait; the company said it was monitoring crew safety.",
+      "event_start": "2026-09-06",
+      "event_end": null,
+      "published_at": "2026-09-14",
+      "reported_status": "ongoing",
+      "source_url": "https://www.lemonde.fr/en/economy/article/2026/09/14/houthi-control-of-bab-al-mandab-strait-poses-new-threat-to-global-economy_6757506_19.html"
+    }
+  ],
+  "relationships": [
+    {
+      "supplier": "tsmc",
+      "customer": "apple",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/",
+      "published_at": "2025-08-06",
+      "evidence": "Apple identifies TSMC as a chip supplier and its Arizona factory\u2019s largest customer."
+    },
+    {
+      "supplier": "corning",
+      "customer": "apple",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/",
+      "published_at": "2025-08-06",
+      "evidence": "Apple describes its established cover-glass partnership with Corning."
+    },
+    {
+      "supplier": "texas-instruments",
+      "customer": "apple",
+      "source_url": "https://www.apple.com/newsroom/2025/08/apple-increases-us-commitment-to-600-billion-usd-announces-ambitious-program/",
+      "published_at": "2025-08-06",
+      "evidence": "Apple describes an expanding semiconductor partnership with Texas Instruments; new capacity is forward-looking."
+    },
+    {
+      "supplier": "amkor",
+      "customer": "apple",
+      "source_url": "https://www.apple.com/newsroom/2023/11/apple-announces-expanded-partnership-with-amkor-for-silicon-packaging/",
+      "published_at": "2023-11-30",
+      "evidence": "Apple describes more than a decade of chip-packaging work with Amkor; Peoria is a separate development plan."
+    }
+  ],
+  "limitations": [
+    "Dated curated starter catalog, not an exhaustive current incident feed.",
+    "Supplier inclusion does not assert disruption.",
+    "Route exposure is not verified company delay.",
+    "Coordinates need verification for site-specific analysis."
+  ]
+}

@@ -4,9 +4,11 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import NetworkGraph from "../components/NetworkGraph";
 import EvidencePanel, { IngestionStatus } from "../components/EvidencePanel";
+import ObservationPanel, { CasePanel } from "../components/ObservationPanel";
 import RiskBadge from "../components/RiskBadge";
 
 export default function Dashboard() {
+  const [tab, setTab] = useState<"network" | "signals">("network");
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
@@ -20,7 +22,7 @@ export default function Dashboard() {
     queryFn: ({ signal }) => api.companies(search, industry, page, signal),
     retry: false,
   });
-  const selected = params.get("company") || companies.data?.items[0]?.id || "";
+  const selected = params.get("company") || companies.data?.items.find(c => c.is_synthetic === false)?.id || "";
   const selectCompany = (id: string) => setParams({ company: id });
   const graph = useQuery({
     queryKey: ["graph", selected, depth, direction],
@@ -35,11 +37,11 @@ export default function Dashboard() {
     retry: false,
   });
   const selectedNode = graph.data?.nodes.find((node) => node.id === selected);
-  const rows = [...(companies.data?.items || [])];
+  const rows = [...(companies.data?.items || [])].filter(c => c.is_synthetic === false);
   if (riskSort)
     rows.sort((a, b) => (b.risk_score ?? -1) - (a.risk_score ?? -1));
   const refresh = () => {
-    for (const key of ["signals", "relationships", "ingestion-runs"]) void queryClient.invalidateQueries({queryKey: [key]});
+    for (const key of ["signals", "relationships", "ingestion-runs", "locations", "location-signals", "cases", "source-status"]) void queryClient.invalidateQueries({queryKey: [key]});
     void companies.refetch();
     if (selected) {
       void graph.refetch();
@@ -59,7 +61,7 @@ export default function Dashboard() {
           ◈ &nbsp; Network overview
         </a>
         <div className="sidebar-note">
-          <span className="status-dot" /> Phase 2 · Research prototype
+          <span className="status-dot" /> Phase 3 · Research prototype
           <p>A working foundation for understanding supply-chain exposure.</p>
         </div>
       </aside>
@@ -88,9 +90,9 @@ export default function Dashboard() {
           </button>
         </section>
         <div className="demo-banner">
-          <strong>Real sources + synthetic demonstration</strong>
+          <strong>Real companies · Sourced relationships</strong>
           <span>
-            Sources are labelled throughout · GCN trained on simulated shocks · Scores are
+            GCN remains trained on simulated shocks · Scores are
             not calibrated probabilities.
           </span>
         </div>
@@ -119,6 +121,10 @@ export default function Dashboard() {
             <small>Experimental risk index</small>
           </article>
         </section>
+        <div className="view-tabs" role="tablist" aria-label="Explorer views">
+          <button id="network-tab" role="tab" aria-selected={tab === "network"} aria-controls="network-view" onClick={() => setTab("network")}>Network</button>
+          <button id="signals-tab" role="tab" aria-selected={tab === "signals"} aria-controls="signals-view" onClick={() => setTab("signals")}>Signals</button>
+        </div>
         <div className="content-grid">
           <section className="panel companies-panel">
             <div className="panel-title">
@@ -176,7 +182,7 @@ export default function Dashboard() {
               <p className="panel-message">
                 {search || industry
                   ? "No companies match these filters."
-                  : "No companies yet. Import sources or load the synthetic demonstration to begin."}
+                  : "No real companies yet. Import sources or install the real-company catalog to begin."}
               </p>
             )}
             <div className="company-list">
@@ -190,7 +196,7 @@ export default function Dashboard() {
                   <span>
                     <strong>{company.name}</strong>
                     <small>
-                      {company.industry || "Industry unknown"} · {company.is_synthetic ? "Synthetic" : "SEC company"}
+                      {company.industry || "Industry unknown"} · Real company
                     </small>
                   </span>
                   <RiskBadge score={company.risk_score} />
@@ -210,7 +216,7 @@ export default function Dashboard() {
               </button>
             </div>
           </section>
-          <section className="panel network-panel">
+          {tab === "network" ? <section id="network-view" role="tabpanel" aria-labelledby="network-tab" className="panel network-panel">
             <div className="panel-title">
               <div>
                 <div className="eyebrow">SUPPLIER EXPLORER</div>
@@ -281,11 +287,11 @@ export default function Dashboard() {
                 <i className="unscored-dot" /> Unscored
               </span>
             </div>
-          </section>
+          </section> : <div id="signals-view" role="tabpanel" aria-labelledby="signals-tab"><ObservationPanel /></div>}
         </div>
-        {selected && <EvidencePanel key={selected} companyId={selected} />}
+        {tab === "signals" && selected && <><CasePanel key={`cases-${selected}`} companyId={selected} /><EvidencePanel key={selected} companyId={selected} /></>}
         <IngestionStatus />
-        <section className="panel history-panel">
+        {tab === "network" && <section className="panel history-panel">
           <div className="panel-title">
             <div>
               <div className="eyebrow">MODEL OBSERVATIONS</div>
@@ -331,7 +337,7 @@ export default function Dashboard() {
                         {item.score.toFixed(3)}
                       </td>
                       <td>
-                        {item.input_basis === "observed_signals_experimental" ? "News · experimental" : "Synthetic scenario"}
+                        {"Real-network news · experimental"}
                         <small className="basis-count">{item.evidence_count ?? 0} direct evidence records</small>
                       </td>
                       <td>
@@ -350,9 +356,9 @@ export default function Dashboard() {
               </table>
             </div>
           ) : null}
-        </section>
+        </section>}
         <footer>
-          CASCADENCE / PHASE 02{" "}
+          CASCADENCE / PHASE 03{" "}
           <span>
             Source evidence. Visible provenance. Transparent limits.
           </span>

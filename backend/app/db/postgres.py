@@ -3,6 +3,7 @@ Postgres engine/session. Engine creation is lazy (SQLAlchemy doesn't connect unt
 first use), so importing this module — and therefore booting the app — never requires
 a live Postgres instance. Actual connections only happen when a request needs one.
 """
+
 from collections.abc import Generator
 
 from sqlalchemy import create_engine

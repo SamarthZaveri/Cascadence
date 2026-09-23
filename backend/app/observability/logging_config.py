@@ -2,6 +2,7 @@
 Correlation ID is bound per-request by app.middleware.correlation_id and shows up in
 every log line and every error response emitted during that request.
 """
+
 import logging
 import sys
 

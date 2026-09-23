@@ -4,6 +4,7 @@ creation — `neo4j.GraphDatabase.driver()` is lazy — so importing/booting the
 requires a live Neo4j instance. Use `verify_connectivity()` explicitly (e.g. in a
 startup health check or readiness probe) when you actually need to know it's reachable.
 """
+
 from collections.abc import Generator
 from contextlib import contextmanager
 

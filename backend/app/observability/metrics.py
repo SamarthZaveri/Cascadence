@@ -4,6 +4,7 @@ prometheus-fastapi-instrumentator. The custom metrics below are declared here so
 service module that needs them imports from one place instead of redefining collectors
 (Prometheus client raises on duplicate registration).
 """
+
 from prometheus_client import Counter, Gauge, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 

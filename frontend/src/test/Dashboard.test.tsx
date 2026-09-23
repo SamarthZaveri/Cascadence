@@ -22,7 +22,7 @@ const company = {
   ticker: null,
   industry: "Materials",
   hq_country: "India",
-  is_synthetic: true,
+  is_synthetic: false,
   risk_score: 0.35,
 };
 function mount() {
@@ -73,7 +73,7 @@ describe("Dashboard", () => {
     });
     mount();
     expect(
-      await screen.findByText(/Import sources or load the synthetic demonstration/),
+      await screen.findByText(/Import sources or install the real-company catalog/),
     ).toBeInTheDocument();
     expect(api.graph).not.toHaveBeenCalled();
   });

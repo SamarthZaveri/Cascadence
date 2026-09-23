@@ -20,7 +20,7 @@ configure_logging()
 app = FastAPI(
     title="Cascadence API",
     description="Supply chain risk propagation platform.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(CorrelationIdMiddleware)

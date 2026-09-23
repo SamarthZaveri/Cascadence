@@ -361,3 +361,29 @@ with explicit experimental provenance and source snapshots. It does not retrain 
 GCN on real outcomes or validate forecasting ability. Phase 4 still owns model maturity;
 Phase 5 owns historical validation. Exact additional APIs/config and operational bounds
 are recorded in DATA_CONTRACT §9. Phase 3 remains the next scope.
+
+## 14. Phase 3 implementation and real-data-only override (2026-09-21)
+
+The user's real-data-only requirement supersedes §2's hybrid-data dashboard strategy.
+Synthetic generation remains only for explicit research/testing; the browser excludes
+synthetic companies, unsupported edges and old mixed-network scores. A preview/apply
+cleanup removes existing synthetic records while preserving real evidence and model
+artifacts. Default demo seeding now installs a sourced real-company catalog.
+
+Phase 3 implements twelve approximate monitoring areas, CDSE Sentinel-2 surface-change
+comparisons, NASA VNP46A3.002 monthly radiance comparisons and NOAA historical vessel
+activity. It uses direct CDSE REST requests (rather than a sentinelhub wrapper), rasterio,
+h5py and a bounded GeoParquet-to-CSV downloader. No vehicle-motion stretch detector is
+included. Metrics describe observations; they do not claim calibrated facility activity,
+port congestion or company disruption. Location signals have NULL severity and are not
+fed into the current GCN; Phase 4 owns justified multimodal features/ablation evaluation.
+
+The Signals view exposes source links, actual dates, quality/provenance, image comparisons
+and missing-data states. Missing credentials/source outages do not create fixture data.
+A small dated catalog has eight real companies, four reviewed public-source supplier
+links and four documented cases. This context is not a completed Phase 5 backtest dataset.
+
+Implementation verification and live operational acceptance are distinct. This source
+release needs free CDSE/Earthdata credentials, successful sensor downloads and the user's
+native Python 3.11/Docker/CI acceptance. See PHASE3_VALIDATION.md for what actually ran;
+do not infer a complete live dataset from the existence of an adapter or a configured key.

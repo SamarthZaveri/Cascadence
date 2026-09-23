@@ -603,3 +603,27 @@ footer span {
 .evidence-item summary { cursor:pointer; padding:6px 0; }
 .basis-count { display:block; color:#98aabe; margin-top:4px; }
 @media(max-width:1000px) { .evidence-grid { grid-template-columns:1fr; } }
+
+/* Phase 3 source observations */
+.view-tabs {display:flex;gap:8px;margin:22px 0;}
+.view-tabs button {padding:12px 28px;border:1px solid #354a5c;border-radius:8px;background:#132333;color:#d4dfe9;}
+.view-tabs button[aria-selected="true"] {color:#101e2c;background:#8ccdbd;border-color:#8ccdbd;}
+.observation-panel,.case-panel {padding:24px;margin-bottom:24px;}
+.observation-panel p,.case-panel p {color:#bbc9d5;line-height:1.65;}
+.observation-panel small {color:#93a8b9;line-height:1.5;}
+.observation-panel select {max-width:100%;margin:12px 0;padding:9px;background:#152838;color:#e5edf5;border:1px solid #40536a;border-radius:6px;}
+.source-status-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0;}
+.source-status-grid article {padding:14px;background:#142536;border:1px solid #2c4255;border-radius:8px;}
+.source-status-grid strong {color:#8ccdbd;}
+.observation-card {padding:20px 0;border-top:1px solid #2c4255;margin-top:18px;}
+.observation-images {display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0;}
+.observation-images figure {margin:0;}
+.observation-images img {width:100%;border-radius:6px;background:#07131d;}
+.observation-images figcaption {padding:8px 0;color:#aec1d0;}
+.observation-card pre {overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;font-size:12px;color:#9cb4c8;}
+.observation-card details {margin-top:12px;}
+.observation-card table {width:100%;border-collapse:collapse;font-size:13px;}
+.observation-card td,.observation-card th {padding:10px;text-align:left;border-bottom:1px solid #2c4255;}
+.content-grid > div {min-width:0;}
+@media(max-width:900px){.source-status-grid{grid-template-columns:1fr;}}
+@media(max-width:520px){.observation-images{grid-template-columns:1fr;}.observation-panel{padding:16px;}}

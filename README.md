@@ -1,120 +1,79 @@
 # Cascadence
 
-Supply-chain risk intelligence built around company relationships. The complete product
-will combine real signals, graph learning, explanations, backtesting, and simulations.
-**Phases 0–2 are implemented.** The project combines a reproducible synthetic GCN demo
-with SEC filings, GDELT headline evidence, reviewed supplier candidates and a dashboard
-that distinguishes real and synthetic data. Observed-input scores remain experimental.
-Satellite/image inputs begin in Phase 3.
+A supply-chain research platform combining source-backed company networks, news evidence,
+and location observations. Phase 3 adds Sentinel-2 surface change, NASA VIIRS monthly
+night lights and historical NOAA vessel activity. The dashboard shows real companies and
+sourced relationships only. Model scores remain experimental and uncalibrated.
 
-## Read these first
+The Phase 3 source code is implemented. Live sensor acceptance still requires free
+provider credentials and successful downloads; see the exact verification boundaries in
+[PHASE3_VALIDATION.md](docs/PHASE3_VALIDATION.md). No generated sensor data is substituted
+when sources are missing. This is a development prototype, without production auth.
 
-- [Implementation handoff](docs/UPDATES.md): compact current state and next work.
-- [Product requirements](docs/PRD.md): product scope and mandatory phase order.
-- [Data contract](docs/DATA_CONTRACT.md): stored fields, APIs, and Phase 1/2 decisions.
-- [Comprehensive project guide](docs/PROJECT_GUIDE.md): architecture, learning pipeline,
-  module explanations, operating guide, current limits, and roadmap.
-- [Verification report](docs/PHASE2_VALIDATION.md): checks actually executed.
-- [Phase 2 installation and file manifest](docs/PHASE2_INSTALL.md): exact file actions.
+## Start here
 
-## Add real source evidence (Phase 2)
+- [Phase 3 installation](docs/PHASE3_INSTALL.md): Windows Docker, cleanup, credentials,
+  real imports, local checks and GitHub commit/push commands.
+- [Changed file manifest](docs/PHASE3_FILES.md): add/overwrite list; no file deletions.
+- [Handoff](docs/UPDATES.md): compact current state for the next coding session.
+- [Project guide](docs/PROJECT_GUIDE.md): architecture and behavior through Phase 3.
+- [Data contract](docs/DATA_CONTRACT.md): authoritative models, APIs and configuration.
+- [PRD](docs/PRD.md): ordered roadmap; Phase 4 model maturity comes next.
+- [Data sources](docs/PHASE3_SOURCES.md): provenance and interpretation limits.
 
-Preserve `.env` and set SEC_EDGAR_USER_AGENT to your application/name and real contact
-email; the example.com placeholder is rejected. No paid source API key is required.
-From repo root, rebuild and migrate before provisioning the learned NLP models:
+## Install the real starter catalog
 
-```powershell
-docker compose --env-file .env -f infra/docker-compose.yml up -d --build
-docker compose --env-file .env -f infra/docker-compose.yml exec backend alembic upgrade head
-docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.nlp.setup
-docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.ingestion.cli ingest --tickers AAPL --days 7
-```
-
-Stop if a command fails and inspect its error. First NLP setup downloads large public
-model files; runtime subsequently loads them locally. Import up to five tickers per
-cycle. Inspect status/errors/company_ids in the result and open the dashboard. A partial
-source failure returns exit1 and preserves successful evidence. News results may be empty;
-SEC reports may yield no resolved supplier candidates.
-
-Review pending evidence in the dashboard, then approve/reject individual relationship
-UUIDs using the CLI. See the project guide for review, repair, optional synthetic feeders,
-experimental scoring and optional scheduled/background ingestion. Keep INGESTION_TICKERS
-empty until synchronous imports work; no periodic source fetching happens by default.
-
-## Start or update the local demo
-
-Run from the repository root in PowerShell or a terminal. Preserve your existing `.env`.
-For a fresh clone only, copy `.env.example` to `.env` and retain its local demo defaults.
-No external API keys or NVIDIA GPU are needed for Phase 1.
+Preserve your existing `.env`. Fresh clones only: copy `.env.example` to `.env` and set
+local development credentials. From the repository root:
 
 ```powershell
 docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 docker compose --env-file .env -f infra/docker-compose.yml exec backend alembic upgrade head
-docker compose --env-file .env -f infra/docker-compose.yml exec backend python data/seed/seed_demo.py
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.ingestion.cli cleanup-synthetic
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.ingestion.cli cleanup-synthetic --apply
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.extra_signals.cli bootstrap
 ```
 
-Wait for each command to finish successfully. The first build downloads CPU PyTorch.
-The seed script defaults to 60 companies, four tiers (0–3), seed 42, and 120 epochs.
-It writes both stores, reads Neo4j back, trains on separate synthetic networks, reloads
-the saved checkpoint, and commits one score per demo company. Its JSON output includes
-the focal company UUID, model version, artifact path, and evaluation metrics.
+Read the backup/worker-stop procedure in the installation guide before cleaning existing
+data. Bootstrap installs eight real companies, twelve approximate monitoring areas,
+four dated cases and four documented supplier links; it never invents current scores.
+Open [the dashboard](http://localhost:3000/dashboard) and select Network or Signals.
+Remove any old synthetic company UUID from your browser URL.
 
-Open [the dashboard](http://localhost:3000/dashboard). To see the entire default network,
-use the seed output's `focal_company_id` in
-`http://localhost:3000/dashboard?company=<focal_company_id>` and depth 3.
-Other local services: [API docs](http://localhost:8000/docs),
-[Neo4j Browser](http://localhost:7474), [Grafana](http://localhost:3001),
-[Prometheus](http://localhost:9090).
-
-Re-running the identical command keeps the company/edge counts stable and appends a
-new model/scoring run. Changing generator parameters creates a separate synthetic
-network. Artifacts persist in `ml/training/artifacts/<model UUID>/` on the host.
-
-## What is implemented
-
-- SEC/GDELT clients, local learned NLP, evidence normalization, audit records and review.
-- Provenance-aware mixed graphs, evidence/read APIs, import status and source dashboard.
-- Optional Celery ingestion and experimental observed-signal scoring with snapshots.
-
-- Seeded NetworkX multi-tier supply DAG; stable UUID identities and bounded edge weights.
-- Alembic migration for companies, model versions, and risk history in PostgreSQL.
-- Neo4j Company/SUPPLIES persistence and directional traversal.
-- Weighted PyTorch Geometric GCN, graph-disjoint train/validation/test sets, checkpoint
-  selection/reload, and inference from the persisted graph.
-- `GET /api/v1/companies`, `/graph/{id}`, `/risk/{id}`, `/risk/{id}/history`.
-- React dashboard with filtering, pagination, page-level risk sorting, selectable network,
-  upstream/downstream controls, risk history, and accessible company-list fallback.
-- Backend and frontend tests, CI integration checks, existing observability and Compose.
-
-## Limits that matter
-
-Training data and targets remain synthetic. Real-source evidence is labelled separately.
-Scores are bounded model outputs, **not
-calibrated real-world probabilities**. The model learns a deliberately simple synthetic
-shock-propagation task; good toy metrics are not proof of real disruption forecasting.
-Real/synthetic graphs are now supported. Extracted relationships require review; edge
-criticality and headline severity are heuristic. Images, backtests and calibration remain later work.
-
-Current read endpoints are open only in `ENVIRONMENT=development`; other environments
-return 403 until authentication/workspace ownership are implemented. This is a local
-demo, not a production deployment. LLMs never calculate risk scores.
-
-## Tests and CI
+## Import real sensor observations
 
 ```powershell
-docker compose --env-file .env -f infra/docker-compose.yml exec backend pytest --cov=app
-cd frontend
-npm ci
-npm test
-npm run lint
-npm run build
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.extra_signals.cli download-ais
+docker compose --env-file .env -f infra/docker-compose.yml exec backend python -m app.services.extra_signals.cli collect --locations port-los-angeles --sources ais
 ```
 
-Ordinary backend runs skip integration tests unless explicitly enabled with a dedicated
-`*_test` database. CI enables these tests against PostgreSQL 16 and Neo4j service
-containers, runs Ruff/mypy and frontend checks, then verifies both Docker builds.
-Phase 2 tests also require a dedicated Neo4j. Use `infra/docker-compose.test.yml` and
-the install guide; do not enable them against the demo graph. The guide explains CI.
+The first NOAA download reads four daily files, about 1 GB transfer, and retains a small
+January 2024 harbor subset. It is historical received vessel activity, not live congestion.
+Sentinel-2 needs a free Copernicus Data Space OAuth client; VIIRS needs a free Earthdata
+token. Put keys in `.env`, recreate the backend/worker containers, then follow the
+single-location and all-location commands in the installation guide. Credentials are
+backend-only. There are no paid data-source requirements.
 
-Python is 3.11 throughout project configuration. Default ML dependencies are
-`torch==2.6.0+cpu`, `torch-geometric==2.6.1`, and `networkx==3.4.2`.
+SEC/GDELT ingestion, NLP setup, relationship review and reconciliation from Phase 2 remain
+available. `data/seed/seed_demo.py` now defaults to the real catalog; old synthetic
+research seeding requires an explicit `--synthetic` flag and is hidden by the frontend.
+
+## Architecture and limits
+
+FastAPI + SQLAlchemy/PostgreSQL own evidence, catalog and history. Neo4j projects approved
+supplier→customer relationships. Celery/Redis run opt-in ingestion. React renders source
+links, errors, acquisition dates, image comparisons and provenance. Python 3.11 is retained
+for PyTorch/PyG in Docker and CI.
+
+Sensor observations are location-scoped. A visual change, radiance decline or AIS activity
+ratio does not establish a company disruption. They are excluded from the current GCN;
+Phase 4 owns multimodal/model maturity. The existing GCN is still synthetic-trained;
+real-only observed scoring uses real nodes and supported edges but is not a calibrated
+probability. Missing evidence stays missing. Historical cases are not current warnings.
+
+The synthetic generator remains available for isolated experiments and tests. Generated
+company records, relationships and mixed-network risk history can be removed without
+truncating real evidence. Model weights are preserved, not silently rebranded real-trained.
+
+[API docs](http://localhost:8000/docs) · [Neo4j](http://localhost:7474) ·
+[Grafana](http://localhost:3001) · [Prometheus](http://localhost:9090).

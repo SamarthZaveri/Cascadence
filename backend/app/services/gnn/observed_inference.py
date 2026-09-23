@@ -15,6 +15,7 @@ from app.db.postgres import SessionLocal
 from app.models import Company, ModelVersion, RiskScore, Signal
 from app.services.gnn.graph_builder import to_pyg
 from app.services.gnn.infer import load_model
+from app.services.gnn.queries import REAL_INPUT_BASIS
 from app.services.ingestion.stores import read_network
 
 
@@ -24,8 +25,13 @@ def score_observed_network() -> dict:
     with SessionLocal() as db:
         version = db.scalar(select(ModelVersion).where(ModelVersion.is_active))
         if version is None:
-            return {"status": "skipped", "reason": "No active GCN; run the Phase 1 seed first"}
-        ids = [str(i) for i in db.scalars(select(Company.id))]
+            return {
+                "status": "skipped",
+                "reason": "No active GCN; real observations remain available without scores",
+            }
+        ids = [
+            str(i) for i in db.scalars(select(Company.id).where(Company.is_synthetic.is_(False)))
+        ]
         rows = list(
             db.scalars(
                 select(Signal).where(
@@ -41,7 +47,21 @@ def score_observed_network() -> dict:
         return {"status": "skipped", "reason": "No recent usable news-severity observations"}
     if len(ids) > 1000:
         return {"status": "skipped", "reason": "Phase 2 inference is bounded to 1000 companies"}
+    if not ids:
+        return {"status": "skipped", "reason": "No real companies"}
+    rows = [s for s in rows if s.extracted_data.get("eligible_for_scoring", True)]
     graph = read_network(ids)
+    graph.remove_nodes_from(
+        [n for n, a in graph.nodes(data=True) if a.get("is_synthetic") is not False]
+    )
+    graph.remove_edges_from(
+        [
+            (u, v)
+            for u, v, a in graph.edges(data=True)
+            if a.get("provenance") not in {"sec_filing", "public_source"}
+            or not a.get("evidence_ids")
+        ]
+    )
     observed = {str(s.company_id) for s in rows if str(s.company_id) in graph}
     selected = (
         set().union(*(c for c in nx.weakly_connected_components(graph) if c & observed))
@@ -65,7 +85,7 @@ def score_observed_network() -> dict:
     if not torch.isfinite(scores).all() or not ((scores >= 0) & (scores <= 1)).all():
         raise ValueError("Invalid model output")
     snapshot = {
-        "input_basis": "observed_signals_experimental",
+        "input_basis": REAL_INPUT_BASIS,
         "model_version_id": str(version_id),
         "cutoff": cutoff.isoformat(),
         "as_of": now.isoformat(),
@@ -96,7 +116,7 @@ def score_observed_network() -> dict:
                     score=float(scores[i]),
                     computed_at=now,
                     graph_snapshot_id=snapshot_id,
-                    input_basis="observed_signals_experimental",
+                    input_basis=REAL_INPUT_BASIS,
                     evidence_count=len(evidence[n]),
                 )
                 for i, n in enumerate(data.node_ids)

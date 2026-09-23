@@ -14,7 +14,9 @@ class SupplyRelationship(Base):
         CheckConstraint("criticality >= 0 AND criticality <= 1", name="ck_supply_criticality"),
         CheckConstraint("confidence >= 0 AND confidence <= 1", name="ck_supply_confidence"),
         CheckConstraint("status IN ('pending','approved','rejected')", name="ck_supply_status"),
-        CheckConstraint("provenance IN ('sec_filing','synthetic')", name="ck_supply_provenance"),
+        CheckConstraint(
+            "provenance IN ('sec_filing','public_source','synthetic')", name="ck_supply_provenance"
+        ),
         CheckConstraint(
             "provenance = 'synthetic' OR source_signal_id IS NOT NULL", name="ck_supply_evidence"
         ),

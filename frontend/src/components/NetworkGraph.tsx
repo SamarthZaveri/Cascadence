@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
+import { realGraph } from "../api/client";
 import type { GraphResponse } from "../types/intelligence";
 
 type Props = GraphResponse & {
@@ -28,8 +29,8 @@ export default function NetworkGraph({
   // ForceGraph mutates coordinates and link endpoints. Protect the TanStack Query cache.
   const graph = useMemo(
     () => ({
-      nodes: nodes.map((node) => ({ ...node })),
-      links: links.map((link) => ({ ...link })),
+      nodes: realGraph({nodes, links}).nodes.map((node) => ({ ...node })),
+      links: realGraph({nodes, links}).links.map((link) => ({ ...link })),
     }),
     [nodes, links],
   );
@@ -56,12 +57,12 @@ export default function NetworkGraph({
         nodeColor={(node) => color(node.risk_score)}
         nodeLabel={(node) => {
           const label = document.createElement("span");
-          label.textContent = `${node.name} · ${node.is_synthetic === false ? "SEC company" : "Synthetic"}`;
+          label.textContent = `${node.name} · Real company`;
           return label.innerHTML;
         }}
         nodeVal={(node) => (node.id === centerNodeId ? 3 : 1)}
         linkColor={(link) => link.provenance === "sec_filing" ? "#80c1df" : "#536577"}
-        linkLineDash={(link) => link.provenance === "sec_filing" ? null : [4, 3]}
+        linkLineDash={() => null}
         linkWidth={(link) => 0.6 + link.criticality * 2}
         linkDirectionalArrowLength={5}
         linkDirectionalArrowRelPos={0.85}
@@ -82,15 +83,15 @@ export default function NetworkGraph({
         }}
       />
       <div className="graph-caption">
-        Arrows: supplier → customer · Ring: SEC company · Dashed link: synthetic
+        Arrows: supplier → customer · Sourced relationships only
       </div>
       <details className="graph-accessible">
-        <summary>Accessible company list ({nodes.length})</summary>
+        <summary>Accessible company list ({graph.nodes.length})</summary>
         <ul>
-          {nodes.map((node) => (
+          {graph.nodes.map((node) => (
             <li key={node.id}>
               <button onClick={() => onNodeClick(node.id)}>
-                {node.name} · {node.is_synthetic === false ? "SEC company" : "Synthetic"} · {node.tier >= 0 ? `Tier ${node.tier}` : "Tier not assigned"} ·{" "}
+                {node.name} · {"Real company"} · {node.tier >= 0 ? `Tier ${node.tier}` : "Tier not assigned"} ·{" "}
                 {node.risk_score === null
                   ? "Unscored"
                   : node.risk_score.toFixed(2)}

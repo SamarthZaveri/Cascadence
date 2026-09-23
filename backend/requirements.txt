@@ -35,3 +35,10 @@ sentence-transformers==3.4.1
 transformers==4.49.0
 rapidfuzz==3.12.1
 beautifulsoup4==4.13.3
+
+# Phase 3 geospatial adapters
+numpy==2.2.6
+rasterio==1.4.3
+h5py==3.13.0
+Pillow==11.1.0
+duckdb==1.4.4

@@ -14,9 +14,11 @@ class Signal(Base):
     __table_args__ = (
         CheckConstraint("severity_score >= 0 AND severity_score <= 1", name="ck_signal_severity"),
         Index("ix_signal_company_time", "company_id", "observed_at"),
+        Index("ix_signal_location_time", "location_id", "observed_at"),
     )
     id: Mapped[UUID] = mapped_column(primary_key=True)
     company_id: Mapped[UUID | None] = mapped_column(ForeignKey("companies.id"))
+    location_id: Mapped[UUID | None] = mapped_column(ForeignKey("monitored_locations.id"))
     source_type: Mapped[str] = mapped_column(
         Enum("sec_filing", "news", "satellite", "ais", "viirs", name="signal_source_type")
     )

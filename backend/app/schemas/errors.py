@@ -3,6 +3,7 @@
 Every endpoint's error responses go through this shape via the exception handlers
 registered in app.main.
 """
+
 from typing import Any
 
 from pydantic import BaseModel

@@ -7,7 +7,7 @@ celery_app = Celery(
     "cascadence",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.ingestion"],
+    include=["app.tasks.ingestion", "app.tasks.observations"],
 )
 celery_app.conf.update(
     task_serializer="json",
@@ -23,4 +23,13 @@ if settings.INGESTION_TICKERS.strip():
             "task": "app.tasks.ingestion.ingest_watchlist",
             "schedule": max(3600, settings.INGESTION_INTERVAL_SECONDS),
         }
+    }
+
+if settings.PHASE3_LOCATIONS.strip():
+    celery_app.conf.beat_schedule = {
+        **(celery_app.conf.beat_schedule or {}),
+        "phase3-locations": {
+            "task": "app.tasks.observations.collect_watchlist",
+            "schedule": max(86400, settings.PHASE3_INTERVAL_SECONDS),
+        },
     }

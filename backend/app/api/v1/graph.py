@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db.neo4j_client import get_driver
 from app.db.postgres import get_db
+from app.models import Company
 from app.schemas.intelligence import GraphLink, GraphNode, GraphResponse
 from app.services.gnn.queries import latest_scores_query, require_company
 
@@ -18,12 +19,35 @@ router = APIRouter()
 @router.get("/{company_id}", response_model=GraphResponse)
 def get_graph(
     company_id: UUID,
+    real_only: bool = False,
     depth: int = Query(2, ge=1, le=5),
     direction: Literal["upstream", "downstream", "both"] = "upstream",
     db: Session = Depends(get_db),
     driver: Driver = Depends(get_driver),
 ) -> GraphResponse:
-    require_company(db, company_id)
+    require_company(db, company_id, real_only)
+    real_ids = (
+        [str(i) for i in db.scalars(select(Company.id).where(Company.is_synthetic.is_(False)))]
+        if real_only
+        else []
+    )
+    path_filter = (
+        (
+            "WHERE all(x IN nodes(p) WHERE x.is_synthetic=false AND x.uuid IN $real_ids) "
+            "AND all(r IN relationships(p) WHERE r.provenance IN ['sec_filing','public_source'] "
+            "AND size(coalesce(r.evidence_ids,[]))>0) "
+        )
+        if real_only
+        else ""
+    )
+    edge_filter = (
+        (
+            "AND r.provenance IN ['sec_filing','public_source'] "
+            "AND size(coalesce(r.evidence_ids,[]))>0 "
+        )
+        if real_only
+        else ""
+    )
     # Only validated integers and literal patterns are interpolated; IDs remain parameters.
     pattern = {
         "upstream": f"<-[:SUPPLIES*0..{depth}]-",
@@ -34,12 +58,14 @@ def get_graph(
         nodes = list(
             session.run(
                 CypherQuery(
-                    f"MATCH (c:Company {{uuid:$id}}){pattern}(n:Company) "
-                    "RETURN DISTINCT n.uuid AS id, n.name AS name, n.tier AS tier, "
+                    f"MATCH p=(c:Company {{uuid:$id}}){pattern}(n:Company) "
+                    + path_filter
+                    + "RETURN DISTINCT n.uuid AS id, n.name AS name, n.tier AS tier, "
                     "n.is_synthetic AS is_synthetic LIMIT 1001",
                     timeout=10,
                 ),
                 id=str(company_id),
+                real_ids=real_ids,
             )
         )
         if not nodes:
@@ -61,14 +87,15 @@ def get_graph(
             for row in session.run(
                 "MATCH (a:Company)-[r:SUPPLIES]->(b:Company) "
                 "WHERE a.uuid IN $ids AND b.uuid IN $ids "
-                "RETURN a.uuid AS source, b.uuid AS target, r.criticality AS criticality, "
+                + edge_filter
+                + "RETURN a.uuid AS source, b.uuid AS target, r.criticality AS criticality, "
                 "coalesce(r.provenance, 'synthetic') AS provenance, "
                 "coalesce(r.evidence_ids, []) AS evidence_ids, r.confidence AS confidence "
                 "ORDER BY source, target",
                 ids=ids,
             )
         ]
-    latest = latest_scores_query()
+    latest = latest_scores_query(real_only)
     scores = dict(
         db.execute(select(latest).where(latest.c.company_id.in_([UUID(i) for i in ids])))
         .tuples()

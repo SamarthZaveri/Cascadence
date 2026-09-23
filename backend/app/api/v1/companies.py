@@ -38,7 +38,7 @@ def list_companies(
             )
         )
     total = db.scalar(select(func.count()).select_from(Company).where(*filters)) or 0
-    latest = latest_scores_query()
+    latest = latest_scores_query(is_synthetic is False)
     rows = db.execute(
         select(Company, latest.c.score)
         .outerjoin(latest, Company.id == latest.c.company_id)
@@ -63,9 +63,11 @@ def list_companies(
 
 
 @router.get("/{company_id}", response_model=CompanyDetail)
-def company_detail(company_id: UUID, db: Session = Depends(get_db)) -> CompanyDetail:
-    c = require_company(db, company_id)
-    latest = latest_scores_query()
+def company_detail(
+    company_id: UUID, real_only: bool = False, db: Session = Depends(get_db)
+) -> CompanyDetail:
+    c = require_company(db, company_id, real_only)
+    latest = latest_scores_query(real_only)
     score = db.scalar(select(latest.c.score).where(latest.c.company_id == company_id))
     return CompanyDetail(
         id=c.id,
@@ -82,12 +84,13 @@ def company_detail(company_id: UUID, db: Session = Depends(get_db)) -> CompanyDe
 @router.get("/{company_id}/signals", response_model=SignalPage)
 def company_signals(
     company_id: UUID,
+    real_only: bool = False,
     source_type: str | None = Query(None, pattern="^(sec_filing|news|satellite|ais|viirs)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> SignalPage:
-    require_company(db, company_id)
+    require_company(db, company_id, real_only)
     filters = [Signal.company_id == company_id]
     if source_type:
         filters.append(Signal.source_type == source_type)

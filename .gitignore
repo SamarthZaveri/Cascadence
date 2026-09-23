@@ -31,3 +31,8 @@ ml/training/artifacts/*
 data/cache/
 ml/nlp_cache/
 celerybeat-schedule*
+
+data/phase3_cache/
+data/phase3_inputs/
+backups/
+*.dump

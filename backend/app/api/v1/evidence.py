@@ -21,14 +21,25 @@ router = APIRouter()
 @router.get("/relationships", response_model=RelationshipPage)
 def relationships(
     company_id: UUID | None = None,
+    real_only: bool = False,
     status: Literal["pending", "approved", "rejected"] | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> RelationshipPage:
-    filters = []
+    filters: list = []
+    if real_only:
+        real_ids = select(Company.id).where(Company.is_synthetic.is_(False))
+        filters.extend(
+            [
+                SupplyRelationship.supplier_id.in_(real_ids),
+                SupplyRelationship.customer_id.in_(real_ids),
+                SupplyRelationship.provenance.in_(["sec_filing", "public_source"]),
+                SupplyRelationship.source_signal_id.is_not(None),
+            ]
+        )
     if company_id:
-        require_company(db, company_id)
+        require_company(db, company_id, real_only)
         filters.append(
             or_(
                 SupplyRelationship.supplier_id == company_id,

@@ -60,8 +60,10 @@ class SecEdgar:
                     "form": form,
                     "filing_date": date,
                     "observed_at": datetime.fromisoformat(date).replace(tzinfo=UTC),
-                    "url": (f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/"
-                        f"{accession.replace('-', '')}/{document}"),
+                    "url": (
+                        f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/"
+                        f"{accession.replace('-', '')}/{document}"
+                    ),
                 }
             )
         return rows

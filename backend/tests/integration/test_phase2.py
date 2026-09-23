@@ -212,7 +212,8 @@ def test_observed_inference_uses_evidence_preserves_demo(stores):
     with TestClient(app) as client:
         risk = client.get(f"/api/v1/risk/{focal}").json()["latest"]
         assert (
-            risk["input_basis"] == "observed_signals_experimental" and risk["evidence_count"] == 1
+            risk["input_basis"] == "observed_real_network_experimental"
+            and risk["evidence_count"] == 1
         )
         assert risk["model_version_id"] == seeded["model_version_id"]
         demo = client.get(f"/api/v1/risk/{seeded['focal_company_id']}").json()

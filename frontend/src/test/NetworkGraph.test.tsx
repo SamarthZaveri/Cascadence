@@ -34,8 +34,8 @@ vi.mock("react-force-graph-2d", () => ({
 
 it("protects cached graph objects from force simulation mutations and supports selection", async () => {
   const nodes = [
-    { id: "a", name: "Aster", risk_score: 0.1, tier: 0 },
-    { id: "b", name: "Beryl", risk_score: null, tier: 1 },
+    { id: "a", name: "Aster", risk_score: 0.1, tier: 0, is_synthetic: false },
+    { id: "b", name: "Beryl", risk_score: null, tier: 1, is_synthetic: false },
   ];
   const links = [{ source: "b", target: "a", criticality: 0.9 }];
   const original = JSON.stringify({ nodes, links });

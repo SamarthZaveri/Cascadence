@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     INGESTION_TICKERS: str = ""
     INGESTION_INTERVAL_SECONDS: int = 21600
 
+    PHASE3_CACHE_DIR: str = "../data/phase3_cache"
+    PHASE3_INPUT_DIR: str = "../data/phase3_inputs"
+    EARTHDATA_TOKEN: str | None = None
+    PHASE3_LOCATIONS: str = ""
+    PHASE3_INTERVAL_SECONDS: int = 86400
+
     # --- Observability ---
     PROMETHEUS_ENABLED: bool = True
 

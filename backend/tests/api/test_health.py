@@ -1,6 +1,7 @@
 """Phase 0 smoke test. Deliberately touches no external service — /health itself
 doesn't, so this test must pass in CI with zero service containers running.
 """
+
 import httpx
 import pytest
 from httpx import ASGITransport
