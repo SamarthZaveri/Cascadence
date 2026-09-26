@@ -1,16 +1,16 @@
-# Cascadence — Comprehensive project guide
+# cascadence — Comprehensive project guide
 
-State through Phase 3, 21 September 2026. The code is implemented and the checks listed
-in PHASE3_VALIDATION.md have run. Live source acceptance and the user's Windows upgrade
-remain separate steps. DATA_CONTRACT.md is authoritative for schemas; UPDATES.md is the
-compact handoff for a new coding session.
+State through Phase 4, 26 September 2026. Read PHASE4_GUIDE.md for installation and
+operation, and PHASE4_VALIDATION.md for checks and their limits. Live-source acceptance
+and the Windows Docker upgrade remain separate steps. DATA_CONTRACT.md is authoritative
+for schemas; UPDATES.md is the compact handoff for a new coding session.
 
 ## 1. What the project does
 
 Cascadence stores companies as graph nodes and documented supplier→customer relationships
 as edges. Source evidence explains why a relationship or observation exists. The longer
 roadmap adds stronger risk models, explanations, historical validation and interactive
-simulations. Those later capabilities are not silently included in Phase 3.
+simulations. Phase 4 adds model comparisons and real-data training infrastructure; later phases must validate their utility.
 
 Phase 3 makes the dashboard real-data-only. It provides a small sourced company catalog,
 real document summaries, approximate monitoring areas and importers for satellite,
@@ -28,8 +28,8 @@ presented as proof of a company disruption.
 | Redis | Celery broker/result backend; later cache and streaming infrastructure |
 | Celery worker | Optional scheduled source collection, one worker process by default |
 | Celery beat | Schedules enabled watchlists; empty watchlists do nothing |
-| PyTorch/PyG | Existing experimental two-layer weighted GCN |
-| React/Vite | Company directory, real graph, Signals tab, provenance and run status |
+| PyTorch/PyG | GCN, GAT, GraphSAGE and spatial GCN + GRU, real snapshots and evaluations |
+| React/Vite | Real directory/graph, Signals, Models & coverage, geopolitical context and audit |
 | Docker Compose | Starts the local service stack with persistent data volumes |
 | GitHub Actions | Runs checks in separate environments after pushes/PRs |
 
@@ -58,11 +58,11 @@ the shared cache with content hashes; SQL only stores references to them.
 | 1 | Synthetic research network, GCN training/inference, graph and risk read APIs |
 | 2 | SEC/GDELT ingestion, NLP, evidence/review, graph reconciliation and audits |
 | 3 | Real-only UI, targeted cleanup, sourced catalog, Sentinel/VIIRS/AIS adapters and Signals tab |
-| 4 | Next: GAT, GraphSAGE, temporal GNN, comparisons and multimodal ablations |
+| 4 | GAT, GraphSAGE, temporal GNN, comparisons, ablations, real snapshot/label path and coverage UI |
 | 5 | Planned: explainability and researched historical backtesting |
 | 6–8 | Planned: simulation, recommendations, alerts, productization and deployment |
 
-Phase 3 does not claim a real-trained or historically validated risk model.
+No delivered Phase 4 model is claimed real-trained or historically validated. See PRD §15 for the ten-phase beta goal.
 
 ## 5. Synthetic research data versus actual observations
 
@@ -164,20 +164,26 @@ actual dates, source hashes and quality settings, not access tokens.
 
 ## 12. Current model behavior
 
-Phase 1's GCN takes industry, synthetic indicator and severity features over supplier
-edges. Training uses disjoint generated graphs and synthetic shock-propagation targets.
-The active checkpoint can be reloaded for inference. Good results on that toy task do
-not establish real predictive skill.
+Phase 4 records immutable real-network snapshots with modality values, presence, count
+and age, and approved edge evidence. Observation and ingestion timestamps must both be
+known by cutoff. Location/company context is available only from its recorded knowledge
+time. Daily histories align company identities and reject missing days.
 
-Experimental observed inference now uses only real-company nodes and source-backed
-edges. It takes recent usable news severity, selects connected components with evidence,
-and saves a graph/evidence snapshot alongside scores. Missing within-component evidence
-is zero-imputed and recorded, not disguised as an observed zero. The new input basis is
-`observed_real_network_experimental`. Legacy mixed-input scores are hidden/cleaned.
+GCN, edge-aware GAT, GraphSAGE and temporal GCN + GRU use the same reviewed seven-day
+outcome task. Labels are independently reviewed, source-linked outcomes, not heuristic
+news scores. Splits purge feature/horizon overlap and late outcome availability. The
+comparison reports validation-selected checkpoints, held-out metrics, baselines and
+retrained no-temporal/no-vision/no-news ablations across three seeds.
 
-Curated cases, supplier announcements and all Phase 3 location observations are excluded
-from this scoring path. Phase 4 must design appropriate real multimodal feature windows,
-compare architectures and run ablations; Phase 5 must establish historical validity.
+Only full real-trained models with sufficient labels, auditable lineage and improved
+validation Brier score can activate. The real dashboard hides all previous synthetic-
+trained scores. It shows current scores only for the active model, within two days, and
+only for companies with direct usable evidence. Missing observations remain unknown.
+The output is an experimental index, not a calibrated probability or trading advice.
+
+The included 21-run benchmark is synthetic engineering evidence only. Real training
+requires accumulated history and reviewed labels that are not included. Phase 5 owns
+explanations and broader validity tests. See PHASE4_GUIDE.md for the complete procedure.
 
 ## 13. Dashboard and APIs
 
@@ -188,15 +194,15 @@ company cases, source links and the prior company evidence/review panel. Empty, 
 provider-failure and missing-cache states are explicit. Refresh invalidates all these
 queries. Cases label dated reporting; old ongoing reports become status-unverified.
 
-Read routes remain development-only with no tenant isolation or production auth. New
-API shapes and exact filtering behavior are in DATA_CONTRACT.md §10. No public write
-endpoint is added; operational writes use the CLI/worker.
+The Models & coverage tab shows observed data coverage and eligible real-model selection.
+Geopolitics presents source-linked topic news with dates, pagination and search-cap warnings.
+Routes remain development-only with no tenant isolation or production auth. Model selection
+is an explicit development-only POST; API contracts are in DATA_CONTRACT.md §§10–11.
 
 ## 14. Running, updating and debugging
 
-Use PHASE3_INSTALL.md in order: rebuild → migrate → preview/apply cleanup → bootstrap →
-NOAA download/import → configure free credentials → collect one area → collect all areas
-→ verify → commit/push. Stop workers during migration/cleanup. Preserve `.env` and data
+Use PHASE4_GUIDE.md and scripts/phase4-setup.ps1 for the upgrade. Retain PHASE3_INSTALL.md
+for sensor import procedures; expand the company/news universe with the Phase 4 commands. Stop workers during migration/cleanup. Preserve `.env` and data
 volumes. Recreate containers after changing environment values; restart alone is not a
 reliable way to apply a changed Compose environment.
 
@@ -213,7 +219,8 @@ in CI remain required even when the development-environment checks pass here.
 
 ## 15. Next session
 
-Read UPDATES.md and PHASE3_VALIDATION.md first. Finish live-source acceptance and the
-Windows/CI run before Phase 4. Keep the frontend free of synthetic company data. Retain
-source dates, null severity, research-model labels and the separation between location
-observations and established company effects. Do not relabel source outages as success.
+Read UPDATES.md and PHASE4_VALIDATION.md first. Complete Windows/CI and live-source
+acceptance, sustain collection and review outcomes before training a real model. Keep
+synthetic benchmarks isolated from the dashboard. Advance Phase 5 explanations and
+validation with the finance/geopolitics beta requirements in PRD §15. Do not relabel
+source outages, missing data, or insufficient outcome labels as successful validation.

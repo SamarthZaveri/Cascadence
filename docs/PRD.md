@@ -1,4 +1,4 @@
-# PRD — Cascadence: Supply Chain Risk Propagation Platform
+# PRD — cascadence: Supply Chain Risk Propagation Platform
 
 ## 1. What this is
 A platform that models a company's supply network as a graph, fuses real multimodal signals
@@ -382,6 +382,30 @@ The Signals view exposes source links, actual dates, quality/provenance, image c
 and missing-data states. Missing credentials/source outages do not create fixture data.
 A small dated catalog has eight real companies, four reviewed public-source supplier
 links and four documented cases. This context is not a completed Phase 5 backtest dataset.
+
+## 15. Phase 4 implementation and beta direction (2026-09-26)
+
+The intended users are finance and geopolitics researchers; the final ten-phase product
+must support real beta testing. Real, plentiful, traceable data and prospective history
+are product requirements. Counts of company names are not supplier coverage or predictive
+validation. Phase 4 expands repeatable SEC/GDELT ingestion and exposes coverage/freshness
+and contextual geopolitical reports alongside the required GNN maturity work.
+
+Implemented: four architectures, recorded temporal snapshots, signed sensor context with
+missingness, identical-seed comparisons, retrained temporal/news/vision ablations, auditable
+artifacts, explicit active-model selection, and real-only inference/API/UI integration.
+Twenty-one offline engineering benchmark runs are delivered, clearly labelled synthetic.
+
+This section overrides §8.4's initial weak-label proposal. A high-severity headline is
+an input proxy, not an independently verified future disruption. Real model training
+requires reviewed seven-day outcomes (including affirmative negative coverage), known-at
+timestamps and purged temporal splits. Unknown outcomes stay masked. No active real model
+or calibrated financial signal is claimed from the small starter catalog. Phase 5 owns
+independent historical/prospective evaluation and explainability.
+
+See PHASE4_GUIDE.md for the data acquisition/label protocol, operational commands and beta
+acceptance targets. Complete auth, tenant boundaries, source coverage, calibration,
+deployment and user feedback workflows in the remaining roadmap before public beta use.
 
 Implementation verification and live operational acceptance are distinct. This source
 release needs free CDSE/Earthdata credentials, successful sensor downloads and the user's

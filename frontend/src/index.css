@@ -627,3 +627,10 @@ footer span {
 .content-grid > div {min-width:0;}
 @media(max-width:900px){.source-status-grid{grid-template-columns:1fr;}}
 @media(max-width:520px){.observation-images{grid-template-columns:1fr;}.observation-panel{padding:16px;}}
+.research-panel { padding: 24px; min-width: 0; }
+.research-panel p, .research-panel li { line-height: 1.6; }
+.coverage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.coverage-grid strong { display: block; font-size: 28px; }
+.coverage-grid span { font-size: 12px; }
+.context-item { padding: 18px 0; border-bottom: 1px solid #dde3e6; }
+.research-panel code { overflow-wrap: anywhere; }

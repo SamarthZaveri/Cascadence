@@ -94,7 +94,8 @@ def test_bootstrap_idempotent_real_graph_and_cleanup_preserves_evidence(stores):
         graph = client.get(f"/api/v1/graph/{focal}?real_only=true").json()
         assert len(graph["nodes"]) == 5 and len(graph["links"]) == 4
         assert all(n["is_synthetic"] is False for n in graph["nodes"])
-        assert len(client.get(f"/api/v1/risk/{focal}?real_only=true").json()["history"]) == 1
+        # Phase 4 hides legacy synthetic-trained scores even when their inputs were real.
+        assert len(client.get(f"/api/v1/risk/{focal}?real_only=true").json()["history"]) == 0
         assert client.get("/api/v1/locations").json()["total"] == 12
     preview = cleanup_synthetic()
     assert preview["sql_rows"]["companies"] == 2

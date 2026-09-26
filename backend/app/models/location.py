@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -34,6 +34,9 @@ class CompanyLocation(Base):
     )
     relationship: Mapped[str]
     source_url: Mapped[str]
+    available_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class DisruptionCase(Base):

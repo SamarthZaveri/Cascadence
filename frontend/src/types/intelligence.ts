@@ -39,7 +39,7 @@ export interface RiskObservation {
   model_version_id: string;
   computed_at: string;
   graph_snapshot_id: string;
-  input_basis?: "synthetic_scenario" | "observed_signals_experimental" | "observed_real_network_experimental";
+  input_basis?: "synthetic_scenario" | "observed_signals_experimental" | "observed_real_network_experimental" | "observed_multimodal_experimental";
   evidence_count?: number;
 }
 export interface RiskResponse {

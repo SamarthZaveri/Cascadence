@@ -1,10 +1,13 @@
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import AwareDatetime
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.postgres import get_db
+from app.models import ModelVersion
 from app.schemas.intelligence import RiskHistory, RiskObservation, RiskResponse
 from app.services.gnn.queries import require_company, risk_history
 
@@ -20,9 +23,19 @@ def get_risk(
         RiskObservation.model_validate(row)
         for row in risk_history(db, company_id, real_only=real_only)
     ]
-    return RiskResponse(
-        company_id=company_id, latest=history[0] if history else None, history=history
-    )
+    latest = history[0] if history else None
+    if real_only:
+        active = db.scalar(select(ModelVersion.id).where(ModelVersion.is_active))
+        latest = next(
+            (
+                r
+                for r in history
+                if r.model_version_id == active
+                and r.computed_at >= datetime.now(UTC) - timedelta(days=2)
+            ),
+            None,
+        )
+    return RiskResponse(company_id=company_id, latest=latest, history=history)
 
 
 @router.get("/{company_id}/history", response_model=RiskHistory)

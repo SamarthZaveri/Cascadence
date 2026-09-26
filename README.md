@@ -1,24 +1,31 @@
-# Cascadence
+# cascadence
 
-A supply-chain research platform combining source-backed company networks, news evidence,
-and location observations. Phase 3 adds Sentinel-2 surface change, NASA VIIRS monthly
-night lights and historical NOAA vessel activity. The dashboard shows real companies and
-sourced relationships only. Model scores remain experimental and uncalibrated.
+A supply-chain research platform for finance and geopolitics combining sourced company
+networks, news and location observations. Phase 4 adds GCN/GAT/GraphSAGE/temporal model
+comparisons, real-data snapshots, reviewed-outcome training, model selection, larger SEC
+universe ingestion, geopolitical context and visible coverage. The dashboard shows real
+companies and sourced relationships only. Model indices remain experimental.
 
-The Phase 3 source code is implemented. Live sensor acceptance still requires free
+The Phase 4 model and collection workflows are implemented. Live sensor acceptance requires free
 provider credentials and successful downloads; see the exact verification boundaries in
 [PHASE3_VALIDATION.md](docs/PHASE3_VALIDATION.md). No generated sensor data is substituted
 when sources are missing. This is a development prototype, without production auth.
 
 ## Start here
 
+- [Phase 4 guide](docs/PHASE4_GUIDE.md): complete installation, data expansion, training,
+  evaluation, activation and beta acceptance requirements.
+- [Phase 4 validation](docs/PHASE4_VALIDATION.md): checks performed and remaining limits.
+- [Phase 4 changes](docs/PHASE4_FILES.md): add/overwrite manifest.
+- [Comparison and ablations](docs/phase4-evaluation/comparison.md): measured offline
+  engineering results, explicitly **not real predictive performance**.
 - [Phase 3 installation](docs/PHASE3_INSTALL.md): Windows Docker, cleanup, credentials,
   real imports, local checks and GitHub commit/push commands.
 - [Changed file manifest](docs/PHASE3_FILES.md): add/overwrite list; no file deletions.
 - [Handoff](docs/UPDATES.md): compact current state for the next coding session.
-- [Project guide](docs/PROJECT_GUIDE.md): architecture and behavior through Phase 3.
+- [Project guide](docs/PROJECT_GUIDE.md): architecture and behavior through Phase 4.
 - [Data contract](docs/DATA_CONTRACT.md): authoritative models, APIs and configuration.
-- [PRD](docs/PRD.md): ordered roadmap; Phase 4 model maturity comes next.
+- [PRD](docs/PRD.md): ordered roadmap; Phase 5 explainability/backtesting comes next.
 - [Data sources](docs/PHASE3_SOURCES.md): provenance and interpretation limits.
 
 ## Install the real starter catalog
@@ -66,10 +73,11 @@ links, errors, acquisition dates, image comparisons and provenance. Python 3.11 
 for PyTorch/PyG in Docker and CI.
 
 Sensor observations are location-scoped. A visual change, radiance decline or AIS activity
-ratio does not establish a company disruption. They are excluded from the current GCN;
-Phase 4 owns multimodal/model maturity. The existing GCN is still synthetic-trained;
-real-only observed scoring uses real nodes and supported edges but is not a calibrated
-probability. Missing evidence stays missing. Historical cases are not current warnings.
+ratio does not establish a company disruption. Phase 4 uses them only as bounded contextual
+features with availability masks. Real inference requires an explicitly selected model
+trained on reviewed outcomes and evaluated on purged temporal splits. Until enough data
+exists, companies remain unscored. Historical cases are not current warnings. Legacy
+synthetic-trained scores are hidden in real-only APIs.
 
 The synthetic generator remains available for isolated experiments and tests. Generated
 company records, relationships and mixed-network risk history can be removed without

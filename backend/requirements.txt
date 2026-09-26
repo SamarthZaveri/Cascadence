@@ -42,3 +42,6 @@ rasterio==1.4.3
 h5py==3.13.0
 Pillow==11.1.0
 duckdb==1.4.4
+
+# Phase 4 reproducible architecture evaluation
+scikit-learn==1.6.1

@@ -1,6 +1,6 @@
 import type {CompanyPage, Page, Signal, Relationship, IngestionRun, GraphResponse, RiskResponse, Location, DisruptionCase, SourceStatus} from "../types/intelligence";
 const base = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
-export const realBasis = "observed_real_network_experimental";
+export const realBasis = "observed_multimodal_experimental";
 export const imageUrl = (id: string, role: "before" | "after") => `${base}/signals/${encodeURIComponent(id)}/images/${role}`;
 export async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${base}${path}`, {signal});
@@ -31,7 +31,7 @@ export const api = {
   risk: async (id: string, signal?: AbortSignal): Promise<RiskResponse> => {
     const data = await request<RiskResponse>(`/risk/${id}?real_only=true`, signal);
     const history = data.history.filter(r => r.input_basis === realBasis);
-    return {...data, history, latest: history[0] || null};
+    return {...data, history, latest: data.latest?.input_basis === realBasis ? data.latest : null};
   },
   locations: (signal?: AbortSignal) => request<Page<Location>>("/locations?page_size=100", signal),
   cases: (id: string, signal?: AbortSignal) => request<Page<DisruptionCase>>(`/cases?company_id=${id}&page_size=100`, signal),

@@ -6,9 +6,10 @@ import NetworkGraph from "../components/NetworkGraph";
 import EvidencePanel, { IngestionStatus } from "../components/EvidencePanel";
 import ObservationPanel, { CasePanel } from "../components/ObservationPanel";
 import RiskBadge from "../components/RiskBadge";
+import ModelsPanel, { ContextPanel } from "../components/ModelsPanel";
 
 export default function Dashboard() {
-  const [tab, setTab] = useState<"network" | "signals">("network");
+  const [tab, setTab] = useState<"network" | "signals" | "models" | "context">("network");
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
@@ -41,7 +42,7 @@ export default function Dashboard() {
   if (riskSort)
     rows.sort((a, b) => (b.risk_score ?? -1) - (a.risk_score ?? -1));
   const refresh = () => {
-    for (const key of ["signals", "relationships", "ingestion-runs", "locations", "location-signals", "cases", "source-status"]) void queryClient.invalidateQueries({queryKey: [key]});
+    for (const key of ["signals", "relationships", "ingestion-runs", "locations", "location-signals", "cases", "source-status", "models", "coverage", "context"]) void queryClient.invalidateQueries({queryKey: [key]});
     void companies.refetch();
     if (selected) {
       void graph.refetch();
@@ -61,7 +62,7 @@ export default function Dashboard() {
           ◈ &nbsp; Network overview
         </a>
         <div className="sidebar-note">
-          <span className="status-dot" /> Phase 3 · Research prototype
+          <span className="status-dot" /> Phase 4 · Research preview
           <p>A working foundation for understanding supply-chain exposure.</p>
         </div>
       </aside>
@@ -92,8 +93,8 @@ export default function Dashboard() {
         <div className="demo-banner">
           <strong>Real companies · Sourced relationships</strong>
           <span>
-            GCN remains trained on simulated shocks · Scores are
-            not calibrated probabilities.
+            Coverage and provenance are visible · Missing data is unknown ·
+            Scores are not calibrated probabilities.
           </span>
         </div>
         <section className="stats" aria-label="Network summary">
@@ -124,6 +125,8 @@ export default function Dashboard() {
         <div className="view-tabs" role="tablist" aria-label="Explorer views">
           <button id="network-tab" role="tab" aria-selected={tab === "network"} aria-controls="network-view" onClick={() => setTab("network")}>Network</button>
           <button id="signals-tab" role="tab" aria-selected={tab === "signals"} aria-controls="signals-view" onClick={() => setTab("signals")}>Signals</button>
+          <button id="models-tab" role="tab" aria-selected={tab === "models"} aria-controls="models-view" onClick={() => setTab("models")}>Models & coverage</button>
+          <button id="context-tab" role="tab" aria-selected={tab === "context"} aria-controls="context-view" onClick={() => setTab("context")}>Geopolitics</button>
         </div>
         <div className="content-grid">
           <section className="panel companies-panel">
@@ -287,7 +290,9 @@ export default function Dashboard() {
                 <i className="unscored-dot" /> Unscored
               </span>
             </div>
-          </section> : <div id="signals-view" role="tabpanel" aria-labelledby="signals-tab"><ObservationPanel /></div>}
+          </section> : tab === "signals" ? <div id="signals-view" role="tabpanel" aria-labelledby="signals-tab"><ObservationPanel /></div>
+          : tab === "models" ? <div id="models-view" role="tabpanel" aria-labelledby="models-tab"><ModelsPanel /></div>
+          : <div id="context-view" role="tabpanel" aria-labelledby="context-tab"><ContextPanel /></div>}
         </div>
         {tab === "signals" && selected && <><CasePanel key={`cases-${selected}`} companyId={selected} /><EvidencePanel key={selected} companyId={selected} /></>}
         <IngestionStatus />
@@ -337,7 +342,7 @@ export default function Dashboard() {
                         {item.score.toFixed(3)}
                       </td>
                       <td>
-                        {"Real-network news · experimental"}
+                        {"Real multimodal inputs · experimental"}
                         <small className="basis-count">{item.evidence_count ?? 0} direct evidence records</small>
                       </td>
                       <td>
@@ -358,7 +363,7 @@ export default function Dashboard() {
           ) : null}
         </section>}
         <footer>
-          CASCADENCE / PHASE 03{" "}
+          cascadence / PHASE 04{" "}
           <span>
             Source evidence. Visible provenance. Transparent limits.
           </span>

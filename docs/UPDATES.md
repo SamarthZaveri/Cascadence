@@ -1,56 +1,60 @@
-# Cascadence — Implementation handoff
+# cascadence — implementation handoff
 
-Updated 2026-09-22. Phase 3 source baseline is Phase 2 commit
-`da1a1b6a2ec8ffc53d43b36af12d8d5b58849654` plus this delivery tree.
-Keep this compact; `PROJECT_GUIDE.md`, `DATA_CONTRACT.md` and `PHASE3_INSTALL.md` contain
-the full explanation and operating commands.
+Updated 2026-09-26. Phase 4 baseline: GitHub Phase 3 commit `10931dd`.
+Full operating instructions: `PHASE4_GUIDE.md`; contracts: `DATA_CONTRACT.md` §11.
+Keep this handoff compact. Validation evidence is in `PHASE4_VALIDATION.md`.
 
 ## Current state
 
-Phases 0, 1 and 2 are complete. Phase 3 implementation is present: real-only frontend
-filtering, synthetic cleanup, a dated real catalog, Sentinel-2, VIIRS and NOAA AIS
-adapters, location/case/observation APIs, Signals UI, migration and tests.
+Phase 4 GNN maturity is implemented: GCN, edge-aware GAT, GraphSAGE, spatial GCN + GRU,
+comparisons, three retrained ablations, real snapshot features, reviewed-outcome training,
+checksummed registry, transactional selection, current-model inference and coverage UI.
+SEC-directory expansion, daily-window company news and eight geopolitical topic feeds
+support a larger real research universe. Importing records does not verify supplier edges.
 
-Native Windows installation, live CDSE/Earthdata credentials, NOAA download and the next
-GitHub CI run remain acceptance steps. The ZIP does not include credentials or downloaded
-sensor files.
+The finance/geopolitics beta goal governs the remaining roadmap. Source attribution,
+availability time, missingness, coverage bias and prospective validation take precedence
+over filling a dashboard with unsupported scores. No beta-ready/trading-quality claim.
 
-## Phase 3 behavior
+## Data and model behavior
 
-Migration `20260920_03` adds monitored locations, company-location context, disruption
-cases and nullable `signals.location_id`. Sensor observations are location-scoped, have
-NULL severity and `eligible_for_scoring=false`. The browser requests real-only APIs and
-hides synthetic nodes, unsupported edges and mixed-input scores.
+SQL snapshots include only real nodes, source-backed approved edges and known observations.
+Daily snapshots are recorded forward; missing days and old availability are not invented.
+News/satellite/VIIRS/AIS features have presence and age fields. Sensor features remain
+regional context; source observations keep null severity and never become outcome labels.
 
-`cleanup-synthetic` previews then removes synthetic records while preserving real evidence,
-locations and model files. `seed_demo.py` defaults to the real catalog; legacy synthetic
-training is explicit `--synthetic`.
+Real training requires reviewed seven-day positive AND negative outcome labels, sufficient
+daily history and purged chronological splits. All splits need both classes and >=20 labels.
+Synthetic and ablated models cannot activate. Models must beat the validation constant
+baseline; scores remain experimental, uncalibrated indices. The real dashboard hides legacy
+synthetic-trained scores. No reviewed real training dataset/model is included in this release.
 
-Sentinel-2 uses CDSE REST, real acquisition dates, cloud/SCL/data-mask QA and hashed image
-previews. VIIRS uses NASA VNP46A3.002 monthly HDF5, scaling, quality/fill checks and common
-pixels. `download-ais` reads four official NOAA daily GeoParquet files, decodes WKB,
-filters a small Los Angeles harbor box and writes a checksum manifest; it never falls back
-to generated data. User CSV AIS imports require source URL and completed-day coverage.
+The committed 21-run comparison is an explicitly synthetic engineering benchmark only.
+It writes nothing to production stores and cannot establish financial/geopolitical utility.
 
-## Model/data limits
+## Upgrade and operation
 
-The GCN remains synthetic-trained. Experimental observed inference uses only real nodes and
-source-backed edges with recent news evidence; outputs are not calibrated probabilities.
-Location observations, curated cases and supplier announcements are not silently converted
-into model labels. No causal disruption detection or historical backtest is claimed.
+Use `scripts/phase4-setup.ps1` from PowerShell with Docker Desktop running and `.env` set.
+It stops workers, rebuilds, backs up SQL, migrates, cleans synthetic records, bootstraps
+real catalog data, snapshots, checks and restarts services. `-CollectData` imports an
+expanded universe before scheduled workers resume. Inspect partial source failures.
 
-SQL is evidence/review truth; Neo4j is repairable with `reconcile`. Cross-store writes are
-not atomic. The shared advisory lock `18092026` serializes cleanup, bootstrap, ingestion,
-review, augmentation and scoring. Read APIs remain development-only without tenant auth.
+Migration `20260925_04` adds graph snapshots and company-location availability time.
+Preserve `.env`, caches, artifacts and volumes. Never use `down -v` for an upgrade.
+SEC needs a real contact User-Agent; GDELT is keyless. CDSE OAuth and NASA Earthdata
+credentials remain necessary for their sensor sources. No new paid account is required.
 
-## Verification and resume
+## Validation and next work
 
-Ruff, mypy, compileall and diff checks pass. Backend/API/Phase 1/Phase 3 tests: 40 passed,
-3 skipped. Frontend tests: 13 passed; lint, TypeScript and production build pass. Migration
-upgrade/drift/downgrade/re-upgrade pass in dedicated stores. Native Windows Docker, live
-CDSE/Earthdata/NOAA downloads and new remote CI are not claimed verified here.
+Backend service/API checks: 71 passed. Phase 4 SQL integration: 4 passed with embedded
+PostgreSQL. Upgrade, schema drift, downgrade and re-upgrade checks passed. Frontend:
+16 tests, lint, TypeScript and build passed. See validation notes for exact boundaries.
 
-Apply `PHASE3_INSTALL.md`, preserve `.env`, back up SQL, stop worker/beat, rebuild, migrate,
-preview/apply cleanup, bootstrap the catalog, download/import AIS, then configure one
-location for Sentinel/VIIRS. Inspect source errors and observation provenance before
-collecting all locations. Phase 4 is next after native acceptance.
+Native Windows Docker/PostgreSQL 16/Python 3.11, remote CI and real provider ingestion
+remain installation acceptance steps. No sensor download or populated 100-company dataset
+is claimed verified here. Development-only APIs still need production authentication.
+
+Phase 5 should establish explanations and honest historical/prospective evaluation while
+collection accumulates: independent reviewed outcomes, baselines, leakage audits, regional
+holdouts and false-positive analysis. Expand beyond SEC/English coverage. Use the full
+ten-phase beta requirements in PRD §15 and PHASE4_GUIDE.md to guide product decisions.

@@ -44,7 +44,7 @@ def main():
 
         result = cleanup_synthetic(args.apply)
     elif args.command == "score":
-        from app.services.gnn.observed_inference import score_observed_network
+        from app.services.gnn.registry import score_current as score_observed_network
 
         with writer_lock():
             result = score_observed_network()

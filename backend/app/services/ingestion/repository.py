@@ -67,10 +67,7 @@ def save_signal(values: dict):
         db.execute(
             insert(Signal)
             .values(**values)
-            .on_conflict_do_update(
-                index_elements=[Signal.id],
-                set_={k: v for k, v in values.items() if k not in {"id", "ingested_at"}},
-            )
+            .on_conflict_do_nothing(index_elements=[Signal.id])
         )
 
 

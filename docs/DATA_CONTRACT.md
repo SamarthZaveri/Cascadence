@@ -441,6 +441,67 @@ Revision `20260920_03` follows `20260918_02`. Adds:
 Downgrade refuses while Phase 3 locations/cases/public-source edges exist. Export and
 explicitly remove Phase 3 records before downgrading; never silently drop observations.
 
+## 11. Phase 4 contract (2026-09-26)
+
+Overrides the legacy scoring path in §§8–10. No additional environment variables.
+`INGESTION_TICKERS` now supports up to 500 tickers in chained five-ticker jobs. A daily
+snapshot task runs independently of source watchlists; no usable model means a recorded
+snapshot and skipped inference. APIs retain the existing development-only guard.
+
+Migration `20260925_04`: `graph_snapshots(id varchar(64) PK, as_of timestamptz UNIQUE,
+feature_schema text, payload jsonb)`. Payload is an immutable forward-recorded real graph,
+with features, per-node source IDs, approved edge evidence and UTC cutoff. ID is SHA-256
+of canonical JSON. `company_locations.available_at timestamptz NOT NULL DEFAULT now()`
+records knowledge time. Existing links get migration time, not guessed historical times.
+Downgrade refuses while snapshots exist. SQL migrations and ORM schema must remain aligned.
+
+Feature schema `phase4-real-v1`: ordered industry one-hot followed by value, normalized
+log-count, presence mask and normalized age for news, satellite, VIIRS and AIS. Windows
+are 30 days except VIIRS (120). Both observation and ingestion cutoffs apply; edge approval
+and location availability must precede cutoff. Sensor source metrics are regional context,
+not severity/outcome labels. Sensors retain NULL severity/eligible_for_scoring=false:
+that flag excludes heuristic risk labeling, not explicitly modeled contextual features.
+Sequence uses last snapshot per UTC day, 2–30 consecutive days (default four), stable final
+node ordering and masks for companies previously unknown. Missing days are not generated.
+
+Real target: reviewed `documented_operational_disruption` in (as_of, as_of+7 days]. JSONL
+labels require snapshot ID, company UUID, exact as_of, outcome_end, available_at, binary
+label, HTTPS source, reviewer and rationale. Missing outcomes are never negatives.
+Split 60/20/20 chronologically; purge prior examples whose outcome end or label availability
+overlaps the next split's earliest sequence frame. Each split needs both classes and >=20
+labels; this is a software gate, not a sufficient statistical sample claim. Earlier known
+raw reports may legitimately recur in rolling features. Snapshot sequence IDs are disjoint.
+
+Four models share node-output [N] in [0,1]. Temporal accepts aligned Data sequences; static
+models use the final frame. Checkpoints carry schema, feature names, architecture, hidden
+width, state dict and external hash. Metrics retain label hash, source snapshot IDs, split
+method, seeds and baseline. Labels and artifacts remain outside Git. Architecture selection
+uses validation Brier, fixed classification threshold 0.5, never test-selected parameters.
+ROC AUC/average precision are null when undefined. Ablations retrain and remove the whole
+modality (values and availability). GAT attention is model attention, not causal attribution.
+
+`GET /models` lists up to 100 real-reviewed versions (synthetic experiments excluded).
+`POST /models/{uuid}/activate` explicitly selects a full real-trained model, requiring
+lineage, adequate labelled splits, improvement over validation constant baseline, and a
+verified artifact. Selection uses transaction advisory lock 25092026 plus the one-active
+unique index. Incompatible versions return 409. No arbitrary artifact-path API is exposed.
+
+`GET /coverage` exposes real company count, recent-news company count, approved relationship
+evidence count, source counts/times/staleness, snapshot counts and per-modality usable-company
+counts. `GET /context?topic=&page=1&page_size=20` (max 100) lists source-linked geopolitical
+headlines; discovery times are explicit. Context does not create company exposures.
+
+Inference writes `input_basis=observed_multimodal_experimental` with model ID, snapshot ID,
+time and distinct direct evidence count. Unknown companies are unscored. Real-only current
+scores must match the active version and be <=2 days old; Phase 4 history remains available.
+Legacy synthetic-trained observed scores are excluded. Cleanup preserves both legacy real
+evidence-backed rows and Phase 4 scores, although the frontend hides the former.
+
+SEC universe expansion resolves actual directory records (<=500 per request); no fabricated
+company identities/edges. Daily GDELT windows cap at 250; saturated results carry the cap
+flag. Source failures create audit errors, not substitute records. Source signal identity
+conflicts are insert-only from Phase 4 onward to preserve original ingestion evidence.
+
 ### Sensor signal semantics
 
 `source_type` is satellite, viirs or ais; `severity_score` is NULL. JSON `extracted_data`

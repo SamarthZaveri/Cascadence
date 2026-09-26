@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.db.postgres import SessionLocal
 from app.models import Company, IngestionRun
-from app.services.gnn.observed_inference import score_observed_network
+from app.services.gnn.registry import score_current as score_observed_network
 from app.services.ingestion.http_client import SourceClient
 from app.services.ingestion.news import GdeltNews
 from app.services.ingestion.normalizer import signal_id, to_signal

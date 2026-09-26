@@ -14,6 +14,7 @@ from app.models import (
     SupplyRelationship,
 )
 from app.services.gnn.queries import REAL_INPUT_BASIS
+from app.services.gnn.registry import INPUT_BASIS
 from app.services.ingestion.repository import writer_lock
 
 
@@ -35,7 +36,8 @@ def cleanup_synthetic(apply=False):
             ),
             (
                 RiskScore,
-                or_(RiskScore.company_id.in_(fake), RiskScore.input_basis != REAL_INPUT_BASIS),
+                or_(RiskScore.company_id.in_(fake),
+                    RiskScore.input_basis.not_in([REAL_INPUT_BASIS, INPUT_BASIS])),
             ),
             (CompanyLocation, CompanyLocation.company_id.in_(fake)),
             (DisruptionCase, DisruptionCase.company_id.in_(fake)),

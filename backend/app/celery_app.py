@@ -7,7 +7,7 @@ celery_app = Celery(
     "cascadence",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.ingestion", "app.tasks.observations"],
+    include=["app.tasks.ingestion", "app.tasks.observations", "app.tasks.models"],
 )
 celery_app.conf.update(
     task_serializer="json",
@@ -17,8 +17,14 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
 )
+celery_app.conf.beat_schedule = {
+    "phase4-daily-snapshot": {
+        "task": "app.tasks.models.record_and_score", "schedule": 86400,
+    },
+}
 if settings.INGESTION_TICKERS.strip():
     celery_app.conf.beat_schedule = {
+        **celery_app.conf.beat_schedule,
         "source-watchlist": {
             "task": "app.tasks.ingestion.ingest_watchlist",
             "schedule": max(3600, settings.INGESTION_INTERVAL_SECONDS),

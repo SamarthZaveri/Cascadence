@@ -36,6 +36,10 @@ class GdeltNews:
             "startdatetime": since.astimezone(UTC).strftime("%Y%m%d%H%M%S"),
         }
         data = self.client.json("https://api.gdeltproject.org/api/v2/doc/doc", params, ttl=900)
+        return self.parse_response(data, since, datetime.now(UTC))
+
+    @staticmethod
+    def parse_response(data, since: datetime, until: datetime) -> list[dict]:
         if not isinstance(data, dict) or (data and "articles" not in data):
             raise SourceError("Unexpected GDELT response")
         articles = data.get("articles", [])
@@ -52,7 +56,7 @@ class GdeltNews:
                     not isinstance(article.get("title"), str)
                     or not article["title"]
                     or observed < since
-                    or observed > datetime.now(UTC)
+                    or observed > until
                 ):
                     continue
                 rows.append({**article, "url": url, "observed_at": observed})

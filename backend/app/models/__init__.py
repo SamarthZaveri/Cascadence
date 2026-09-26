@@ -1,4 +1,5 @@
 from .company import Company
+from .graph_snapshot import GraphSnapshot
 from .ingestion_run import IngestionRun
 from .location import CompanyLocation, DisruptionCase, MonitoredLocation
 from .model_version import ModelVersion
@@ -8,6 +9,7 @@ from .supply_relationship import SupplyRelationship
 
 __all__ = [
     "Company",
+    "GraphSnapshot",
     "IngestionRun",
     "CompanyLocation",
     "DisruptionCase",
