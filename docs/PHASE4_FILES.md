@@ -59,7 +59,7 @@ not bundled. Follow PHASE2_INSTALL.md for NLP assets and PHASE4_GUIDE.md for set
 - `backend/migrations/versions/20260925_04_phase4.py`
 - `backend/requirements.txt`
 - `backend/tests/integration/test_phase3.py`
-- `backend/tests/integration/test_phase4.py`
+- `backend/tests/integration/test_phase4_integration.py`
 - `backend/tests/services/test_phase4.py`
 - `docs/DATA_CONTRACT.md`
 - `docs/PHASE4_FILES.md`
