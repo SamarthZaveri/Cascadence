@@ -1,9 +1,7 @@
 """Deterministic source fixtures with real stores; never an external-source test."""
 
-import json
 import os
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from uuid import uuid4
 
 import numpy as np
@@ -17,7 +15,6 @@ from app.db.neo4j_client import get_driver
 from app.db.postgres import SessionLocal, engine
 from app.main import app
 from app.models import Company, IngestionRun, ModelVersion, RiskScore, Signal, SupplyRelationship
-from app.services.gnn.observed_inference import score_observed_network
 from app.services.ingestion.pipeline import run_ingestion_cycle
 from app.services.ingestion.repository import (
     augment,
@@ -203,31 +200,14 @@ def test_exclusive_writer_lock(stores):
         ingest()
 
 
-def test_observed_inference_uses_evidence_preserves_demo(stores):
+def test_phase4_ingestion_does_not_score_without_eligible_real_model(stores):
     seeded = seed_demo(18, 4, 2, 987655, 10)
     focal = company_uuid(DIRECTORY[0]["cik"])
     result = ingest()
     assert result["status"] == "success", result
-    assert result["summary"]["inference"]["status"] == "scored"
+    assert result["summary"]["inference"]["status"] == "skipped"
     with TestClient(app) as client:
-        risk = client.get(f"/api/v1/risk/{focal}").json()["latest"]
-        assert (
-            risk["input_basis"] == "observed_real_network_experimental"
-            and risk["evidence_count"] == 1
-        )
-        assert risk["model_version_id"] == seeded["model_version_id"]
+        risk = client.get(f"/api/v1/risk/{focal}?real_only=true").json()["latest"]
+        assert risk is None
         demo = client.get(f"/api/v1/risk/{seeded['focal_company_id']}").json()
         assert len(demo["history"]) == 1 and demo["latest"]["input_basis"] == "synthetic_scenario"
-    path = (
-        Path(get_settings().MODEL_ARTIFACT_DIR)
-        / "observed_snapshots"
-        / (risk["graph_snapshot_id"] + ".json")
-    )
-    snapshot = json.loads(path.read_text())
-    assert (
-        snapshot["nodes"][0]["severity"] == 0.7
-        and snapshot["nodes"][0]["missing_evidence"] is False
-    )
-    with SessionLocal.begin() as db:
-        db.execute(delete(Signal).where(Signal.source_type == "news", Signal.company_id == focal))
-    assert score_observed_network()["status"] == "skipped"
